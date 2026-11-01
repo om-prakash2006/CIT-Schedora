@@ -1,0 +1,37 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "sessions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "faculty_id", "order": "ASCENDING" },
+        { "fieldPath": "kind", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bookingRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "requesterUserId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "schedules",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "datasetId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "datasetImportJobs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "datasetId", "order": "ASCENDING" },
+        { "fieldPath": "startedAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

@@ -1,0 +1,103 @@
+{
+  "dataset_id": "cit-public-v1",
+  "schedule_dataset_id": "cit-public-v1",
+  "team": "cit-schedora",
+  "soft_penalties": {
+    "S1": 8,
+    "S2": 82,
+    "S3": 33,
+    "S4": 60,
+    "S5": 1,
+    "S6": 7
+  },
+  "soft_total": 191,
+  "bookings": {
+    "booking_score": 67.0,
+    "booking_score_max_if_all_approved": 70,
+    "approved": 22,
+    "alternatives": 1,
+    "rejected": 2,
+    "session_overrides": 0,
+    "priority_inversions": []
+  },
+  "exam_soft_penalty": 0,
+  "stability": {
+    "sessions_moved": 14,
+    "time_changed": 2,
+    "room_only_changed": 12,
+    "moved_ids": [
+      "CE303-L3",
+      "CS202-T1",
+      "CS203-L1",
+      "CS203-L3",
+      "CS292-P1",
+      "EC204-L3",
+      "EC301-L2",
+      "EE204-L1",
+      "EE302-L3",
+      "HS101-B-L2",
+      "HS101-C-L1",
+      "HS101-D-L1",
+      "ME204-L2",
+      "PH101-C-L1"
+    ]
+  },
+  "hard_violations": [
+    {
+      "rule": "H4",
+      "where": "timetable",
+      "detail": "CR-202 double-booked TUE P1: CS203-L3, EC303-L1"
+    },
+    {
+      "rule": "H4",
+      "where": "timetable",
+      "detail": "CR-101 double-booked TUE P8: CS301-L3, HS101-C-L1"
+    },
+    {
+      "rule": "H4",
+      "where": "timetable",
+      "detail": "CR-101 double-booked MON P7: EC204-L1, ME204-L2"
+    },
+    {
+      "rule": "H4",
+      "where": "timetable",
+      "detail": "CR-101 double-booked FRI P7: EE204-L1, ME201-L1"
+    },
+    {
+      "rule": "H4",
+      "where": "timetable",
+      "detail": "CR-101 double-booked THU P4: EE302-L3, PH101-B-L2"
+    },
+    {
+      "rule": "H4",
+      "where": "timetable",
+      "detail": "CR-101 double-booked THU P5: OE303-L1, PH101-C-L1"
+    },
+    {
+      "rule": "H3",
+      "where": "timetable",
+      "detail": "Group CSE-2 double-booked TUE P3: CS202-L2, CS292-P1"
+    },
+    {
+      "rule": "H3",
+      "where": "timetable",
+      "detail": "Group CSE-2 double-booked TUE P1: CS203-L3, CS204-L2"
+    },
+    {
+      "rule": "H3",
+      "where": "timetable",
+      "detail": "Group CSE-2 double-booked TUE P2: CS204-L1, CS292-P1"
+    },
+    {
+      "rule": "H3",
+      "where": "timetable",
+      "detail": "Group CSE-2 double-booked TUE P4: CS204-L3, CS292-P1"
+    }
+  ],
+  "hard_violation_count": 10,
+  "hard_by_rule": {
+    "H4": 6,
+    "H3": 4
+  },
+  "warnings": []
+}

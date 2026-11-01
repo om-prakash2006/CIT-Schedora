@@ -1,0 +1,728 @@
+{
+  "candidate_label": "EXAMINATION TIMETABLE COMPONENT VALIDATION ONLY",
+  "exam_schedule_id": "sched-exam-20261101034338-6abjp",
+  "dataset_id": "cit-public-v1",
+  "dataset_version_id": "v1-1a9cf4b23ac3",
+  "dataset_checksum": "sha256-1a9cf4b23ac36e5d2cb67dc926e3ec5e84a5a72657346d5f25f4895d391de233",
+  "schedule_state": "examination_candidate",
+  "solver_status": "OPTIMAL",
+  "official_soft_penalty": 0,
+  "total_exams": 41,
+  "rooms_allocated": 51,
+  "generated_at": "2026-11-01T03:43:38.920Z",
+  "generated_by": "uid-cit-admin-01",
+  "allocations": [
+    {
+      "exam_id": "EX-CE201",
+      "day": "SAT",
+      "session": "PM",
+      "rooms": [
+        "SH-2"
+      ],
+      "effective_capacity": 50,
+      "candidate_count": 50,
+      "course_ids": [
+        "CE201"
+      ],
+      "groups": [
+        "CE-2"
+      ]
+    },
+    {
+      "exam_id": "EX-CE202",
+      "day": "THU",
+      "session": "AM",
+      "rooms": [
+        "LH-3"
+      ],
+      "effective_capacity": 60,
+      "candidate_count": 50,
+      "course_ids": [
+        "CE202"
+      ],
+      "groups": [
+        "CE-2"
+      ]
+    },
+    {
+      "exam_id": "EX-CE203",
+      "day": "WED",
+      "session": "AM",
+      "rooms": [
+        "SH-1"
+      ],
+      "effective_capacity": 75,
+      "candidate_count": 50,
+      "course_ids": [
+        "CE203"
+      ],
+      "groups": [
+        "CE-2"
+      ]
+    },
+    {
+      "exam_id": "EX-CE204",
+      "day": "TUE",
+      "session": "AM",
+      "rooms": [
+        "LH-3"
+      ],
+      "effective_capacity": 60,
+      "candidate_count": 50,
+      "course_ids": [
+        "CE204"
+      ],
+      "groups": [
+        "CE-2"
+      ]
+    },
+    {
+      "exam_id": "EX-CE301",
+      "day": "WED",
+      "session": "AM",
+      "rooms": [
+        "SH-2"
+      ],
+      "effective_capacity": 50,
+      "candidate_count": 45,
+      "course_ids": [
+        "CE301"
+      ],
+      "groups": [
+        "CE-3"
+      ]
+    },
+    {
+      "exam_id": "EX-CE302",
+      "day": "TUE",
+      "session": "AM",
+      "rooms": [
+        "SH-1"
+      ],
+      "effective_capacity": 75,
+      "candidate_count": 45,
+      "course_ids": [
+        "CE302"
+      ],
+      "groups": [
+        "CE-3"
+      ]
+    },
+    {
+      "exam_id": "EX-CE303",
+      "day": "SAT",
+      "session": "AM",
+      "rooms": [
+        "LH-2"
+      ],
+      "effective_capacity": 100,
+      "candidate_count": 45,
+      "course_ids": [
+        "CE303"
+      ],
+      "groups": [
+        "CE-3"
+      ]
+    },
+    {
+      "exam_id": "EX-CS101",
+      "day": "TUE",
+      "session": "AM",
+      "rooms": [
+        "AUD",
+        "LH-1",
+        "LH-2"
+      ],
+      "effective_capacity": 450,
+      "candidate_count": 360,
+      "course_ids": [
+        "CS101"
+      ],
+      "groups": [
+        "Y1-A",
+        "Y1-B",
+        "Y1-C",
+        "Y1-D"
+      ]
+    },
+    {
+      "exam_id": "EX-CS201",
+      "day": "TUE",
+      "session": "PM",
+      "rooms": [
+        "LH-2"
+      ],
+      "effective_capacity": 100,
+      "candidate_count": 80,
+      "course_ids": [
+        "CS201"
+      ],
+      "groups": [
+        "CSE-2"
+      ]
+    },
+    {
+      "exam_id": "EX-CS202",
+      "day": "MON",
+      "session": "PM",
+      "rooms": [
+        "LH-1"
+      ],
+      "effective_capacity": 100,
+      "candidate_count": 80,
+      "course_ids": [
+        "CS202"
+      ],
+      "groups": [
+        "CSE-2"
+      ]
+    },
+    {
+      "exam_id": "EX-CS203",
+      "day": "SAT",
+      "session": "PM",
+      "rooms": [
+        "LH-2"
+      ],
+      "effective_capacity": 100,
+      "candidate_count": 80,
+      "course_ids": [
+        "CS203"
+      ],
+      "groups": [
+        "CSE-2"
+      ]
+    },
+    {
+      "exam_id": "EX-CS204",
+      "day": "WED",
+      "session": "PM",
+      "rooms": [
+        "LH-2"
+      ],
+      "effective_capacity": 100,
+      "candidate_count": 80,
+      "course_ids": [
+        "CS204"
+      ],
+      "groups": [
+        "CSE-2"
+      ]
+    },
+    {
+      "exam_id": "EX-CS301",
+      "day": "TUE",
+      "session": "PM",
+      "rooms": [
+        "LH-1"
+      ],
+      "effective_capacity": 100,
+      "candidate_count": 75,
+      "course_ids": [
+        "CS301"
+      ],
+      "groups": [
+        "CSE-3"
+      ]
+    },
+    {
+      "exam_id": "EX-CS302",
+      "day": "FRI",
+      "session": "AM",
+      "rooms": [
+        "LH-2"
+      ],
+      "effective_capacity": 100,
+      "candidate_count": 75,
+      "course_ids": [
+        "CS302"
+      ],
+      "groups": [
+        "CSE-3"
+      ]
+    },
+    {
+      "exam_id": "EX-CS303",
+      "day": "MON",
+      "session": "PM",
+      "rooms": [
+        "AUD"
+      ],
+      "effective_capacity": 250,
+      "candidate_count": 75,
+      "course_ids": [
+        "CS303"
+      ],
+      "groups": [
+        "CSE-3"
+      ]
+    },
+    {
+      "exam_id": "EX-EC201",
+      "day": "TUE",
+      "session": "PM",
+      "rooms": [
+        "SH-1"
+      ],
+      "effective_capacity": 75,
+      "candidate_count": 70,
+      "course_ids": [
+        "EC201"
+      ],
+      "groups": [
+        "ECE-2"
+      ]
+    },
+    {
+      "exam_id": "EX-EC202",
+      "day": "WED",
+      "session": "PM",
+      "rooms": [
+        "AUD"
+      ],
+      "effective_capacity": 250,
+      "candidate_count": 70,
+      "course_ids": [
+        "EC202"
+      ],
+      "groups": [
+        "ECE-2"
+      ]
+    },
+    {
+      "exam_id": "EX-EC203",
+      "day": "SAT",
+      "session": "AM",
+      "rooms": [
+        "LH-1"
+      ],
+      "effective_capacity": 100,
+      "candidate_count": 70,
+      "course_ids": [
+        "EC203"
+      ],
+      "groups": [
+        "ECE-2"
+      ]
+    },
+    {
+      "exam_id": "EX-EC204",
+      "day": "THU",
+      "session": "AM",
+      "rooms": [
+        "SH-1"
+      ],
+      "effective_capacity": 75,
+      "candidate_count": 70,
+      "course_ids": [
+        "EC204"
+      ],
+      "groups": [
+        "ECE-2"
+      ]
+    },
+    {
+      "exam_id": "EX-EC301",
+      "day": "FRI",
+      "session": "AM",
+      "rooms": [
+        "SH-1"
+      ],
+      "effective_capacity": 75,
+      "candidate_count": 65,
+      "course_ids": [
+        "EC301"
+      ],
+      "groups": [
+        "ECE-3"
+      ]
+    },
+    {
+      "exam_id": "EX-EC302",
+      "day": "SAT",
+      "session": "AM",
+      "rooms": [
+        "SH-1"
+      ],
+      "effective_capacity": 75,
+      "candidate_count": 65,
+      "course_ids": [
+        "EC302"
+      ],
+      "groups": [
+        "ECE-3"
+      ]
+    },
+    {
+      "exam_id": "EX-EC303",
+      "day": "WED",
+      "session": "PM",
+      "rooms": [
+        "SH-1"
+      ],
+      "effective_capacity": 75,
+      "candidate_count": 65,
+      "course_ids": [
+        "EC303"
+      ],
+      "groups": [
+        "ECE-3"
+      ]
+    },
+    {
+      "exam_id": "EX-EE201",
+      "day": "THU",
+      "session": "AM",
+      "rooms": [
+        "LH-6"
+      ],
+      "effective_capacity": 60,
+      "candidate_count": 60,
+      "course_ids": [
+        "EE201"
+      ],
+      "groups": [
+        "EE-2"
+      ]
+    },
+    {
+      "exam_id": "EX-EE202",
+      "day": "WED",
+      "session": "AM",
+      "rooms": [
+        "LH-4"
+      ],
+      "effective_capacity": 60,
+      "candidate_count": 60,
+      "course_ids": [
+        "EE202"
+      ],
+      "groups": [
+        "EE-2"
+      ]
+    },
+    {
+      "exam_id": "EX-EE203",
+      "day": "MON",
+      "session": "PM",
+      "rooms": [
+        "LH-2"
+      ],
+      "effective_capacity": 100,
+      "candidate_count": 60,
+      "course_ids": [
+        "EE203"
+      ],
+      "groups": [
+        "EE-2"
+      ]
+    },
+    {
+      "exam_id": "EX-EE204",
+      "day": "SAT",
+      "session": "PM",
+      "rooms": [
+        "SH-1"
+      ],
+      "effective_capacity": 75,
+      "candidate_count": 60,
+      "course_ids": [
+        "EE204"
+      ],
+      "groups": [
+        "EE-2"
+      ]
+    },
+    {
+      "exam_id": "EX-EE301",
+      "day": "SAT",
+      "session": "PM",
+      "rooms": [
+        "LH-6"
+      ],
+      "effective_capacity": 60,
+      "candidate_count": 55,
+      "course_ids": [
+        "EE301"
+      ],
+      "groups": [
+        "EE-3"
+      ]
+    },
+    {
+      "exam_id": "EX-EE302",
+      "day": "MON",
+      "session": "AM",
+      "rooms": [
+        "LH-4"
+      ],
+      "effective_capacity": 60,
+      "candidate_count": 55,
+      "course_ids": [
+        "EE302"
+      ],
+      "groups": [
+        "EE-3"
+      ]
+    },
+    {
+      "exam_id": "EX-EE303",
+      "day": "WED",
+      "session": "PM",
+      "rooms": [
+        "LH-1"
+      ],
+      "effective_capacity": 100,
+      "candidate_count": 55,
+      "course_ids": [
+        "EE303"
+      ],
+      "groups": [
+        "EE-3"
+      ]
+    },
+    {
+      "exam_id": "EX-HS101",
+      "day": "WED",
+      "session": "AM",
+      "rooms": [
+        "AUD",
+        "LH-1",
+        "LH-3"
+      ],
+      "effective_capacity": 410,
+      "candidate_count": 360,
+      "course_ids": [
+        "HS101"
+      ],
+      "groups": [
+        "Y1-A",
+        "Y1-B",
+        "Y1-C",
+        "Y1-D"
+      ]
+    },
+    {
+      "exam_id": "EX-HS201",
+      "day": "FRI",
+      "session": "AM",
+      "rooms": [
+        "AUD",
+        "LH-1"
+      ],
+      "effective_capacity": 350,
+      "candidate_count": 320,
+      "course_ids": [
+        "HS201"
+      ],
+      "groups": [
+        "CSE-2",
+        "ECE-2",
+        "EE-2",
+        "ME-2",
+        "CE-2"
+      ]
+    },
+    {
+      "exam_id": "EX-MA101",
+      "day": "FRI",
+      "session": "PM",
+      "rooms": [
+        "AUD",
+        "CR-201",
+        "LH-2"
+      ],
+      "effective_capacity": 395,
+      "candidate_count": 360,
+      "course_ids": [
+        "MA101"
+      ],
+      "groups": [
+        "Y1-A",
+        "Y1-B",
+        "Y1-C",
+        "Y1-D"
+      ]
+    },
+    {
+      "exam_id": "EX-ME201",
+      "day": "SAT",
+      "session": "PM",
+      "rooms": [
+        "AUD"
+      ],
+      "effective_capacity": 250,
+      "candidate_count": 60,
+      "course_ids": [
+        "ME201"
+      ],
+      "groups": [
+        "ME-2"
+      ]
+    },
+    {
+      "exam_id": "EX-ME202",
+      "day": "THU",
+      "session": "AM",
+      "rooms": [
+        "LH-5"
+      ],
+      "effective_capacity": 60,
+      "candidate_count": 60,
+      "course_ids": [
+        "ME202"
+      ],
+      "groups": [
+        "ME-2"
+      ]
+    },
+    {
+      "exam_id": "EX-ME203",
+      "day": "WED",
+      "session": "AM",
+      "rooms": [
+        "LH-6"
+      ],
+      "effective_capacity": 60,
+      "candidate_count": 60,
+      "course_ids": [
+        "ME203"
+      ],
+      "groups": [
+        "ME-2"
+      ]
+    },
+    {
+      "exam_id": "EX-ME204",
+      "day": "TUE",
+      "session": "PM",
+      "rooms": [
+        "LH-4"
+      ],
+      "effective_capacity": 60,
+      "candidate_count": 60,
+      "course_ids": [
+        "ME204"
+      ],
+      "groups": [
+        "ME-2"
+      ]
+    },
+    {
+      "exam_id": "EX-ME301",
+      "day": "WED",
+      "session": "PM",
+      "rooms": [
+        "LH-3"
+      ],
+      "effective_capacity": 60,
+      "candidate_count": 55,
+      "course_ids": [
+        "ME301"
+      ],
+      "groups": [
+        "ME-3"
+      ]
+    },
+    {
+      "exam_id": "EX-ME302",
+      "day": "SAT",
+      "session": "AM",
+      "rooms": [
+        "LH-3"
+      ],
+      "effective_capacity": 60,
+      "candidate_count": 55,
+      "course_ids": [
+        "ME302"
+      ],
+      "groups": [
+        "ME-3"
+      ]
+    },
+    {
+      "exam_id": "EX-ME303",
+      "day": "FRI",
+      "session": "AM",
+      "rooms": [
+        "LH-5"
+      ],
+      "effective_capacity": 60,
+      "candidate_count": 55,
+      "course_ids": [
+        "ME303"
+      ],
+      "groups": [
+        "ME-3"
+      ]
+    },
+    {
+      "exam_id": "EX-OE-BASKET",
+      "day": "THU",
+      "session": "AM",
+      "rooms": [
+        "AUD",
+        "CR-101"
+      ],
+      "effective_capacity": 295,
+      "candidate_count": 295,
+      "course_ids": [
+        "OE301",
+        "OE302",
+        "OE303"
+      ],
+      "groups": [
+        "CSE-3",
+        "ECE-3",
+        "EE-3",
+        "ME-3",
+        "CE-3"
+      ]
+    },
+    {
+      "exam_id": "EX-PH101",
+      "day": "THU",
+      "session": "PM",
+      "rooms": [
+        "AUD",
+        "LH-1",
+        "LH-2"
+      ],
+      "effective_capacity": 450,
+      "candidate_count": 360,
+      "course_ids": [
+        "PH101"
+      ],
+      "groups": [
+        "Y1-A",
+        "Y1-B",
+        "Y1-C",
+        "Y1-D"
+      ]
+    }
+  ],
+  "validation_report": {
+    "reportId": "val-exam-20261101034338-6f20",
+    "examScheduleId": "sched-exam-20261101034338-6abjp",
+    "datasetId": "cit-public-v1",
+    "validationScope": "EXAMINATION TIMETABLE COMPONENT VALIDATION ONLY",
+    "isValid": true,
+    "hardViolationCount": 0,
+    "hardByRule": {},
+    "hardViolations": [],
+    "officialSoftPenalty": 0,
+    "solverSoftPenalty": 0,
+    "parityVerified": true,
+    "totalExams": 41,
+    "scheduledExams": 41,
+    "missingExams": [],
+    "duplicateExams": [],
+    "ineligibleRoomViolations": 0,
+    "groupClashes": 0,
+    "roomConflicts": 0,
+    "capacityViolations": 0,
+    "warnings": [],
+    "validatedAt": "2026-11-01T03:43:38.920Z",
+    "validatedBy": "uid-cit-admin-01"
+  }
+}

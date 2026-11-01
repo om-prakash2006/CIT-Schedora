@@ -1,0 +1,894 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net — Default Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Global Helpers
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'pratyushsatapathy623@gmail.com' ||
+        request.auth.token.email == 'ommbehera46@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function hasProjectConfig() {
+      return exists(/databases/$(database)/documents/systemMeta/projectConfig);
+    }
+
+    // 3. System Metadata Validation Blueprints
+    function isValidProjectConfig(data) {
+      return data.keys().hasAll(['projectId', 'databaseType', 'application', 'schemaVersion', 'initialized', 'createdAt']) &&
+        data.keys().hasOnly(['projectId', 'databaseType', 'application', 'schemaVersion', 'initialized', 'createdAt']) &&
+        data.projectId is string && data.projectId == 'cit-schedora' &&
+        data.databaseType is string && data.databaseType == 'cloud_firestore' &&
+        data.application is string && data.application == 'CIT Schedora' &&
+        data.schemaVersion is int && data.schemaVersion >= 1 &&
+        data.initialized is bool && data.initialized == true &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidActiveDatasetMeta(data) {
+      return data.keys().hasAll(['projectId', 'datasetId', 'versionId', 'institute', 'checksum', 'sourceFilename', 'counts', 'activatedAt', 'activatedBy']) &&
+        data.keys().hasOnly(['projectId', 'datasetId', 'versionId', 'institute', 'checksum', 'sourceFilename', 'counts', 'activatedAt', 'activatedBy']) &&
+        data.projectId is string && data.projectId == 'cit-schedora' &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.versionId is string && data.versionId.size() >= 1 && data.versionId.size() <= 128 &&
+        data.institute is string && data.institute.size() >= 1 && data.institute.size() <= 200 &&
+        data.checksum is string && data.checksum.size() >= 16 && data.checksum.size() <= 128 &&
+        data.sourceFilename is string && data.sourceFilename.size() >= 1 && data.sourceFilename.size() <= 256 &&
+        data.counts is map &&
+        data.activatedAt is string && data.activatedAt.size() >= 1 && data.activatedAt.size() <= 64 &&
+        data.activatedBy is string && data.activatedBy.size() >= 1 && data.activatedBy.size() <= 128;
+    }
+
+    function isValidDatabaseSchemaMeta(data) {
+      return data.keys().hasAll(['projectId', 'currentSchemaVersion', 'lastMigration', 'migrationTimestamp', 'databaseId']) &&
+        data.keys().hasOnly(['projectId', 'currentSchemaVersion', 'lastMigration', 'migrationTimestamp', 'databaseId']) &&
+        data.projectId is string && data.projectId == 'cit-schedora' &&
+        data.currentSchemaVersion is int && data.currentSchemaVersion >= 1 &&
+        data.lastMigration is string && data.lastMigration.size() >= 1 && data.lastMigration.size() <= 160 &&
+        data.migrationTimestamp is string && data.migrationTimestamp.size() >= 1 && data.migrationTimestamp.size() <= 64 &&
+        data.databaseId is string && data.databaseId == 'ai-studio-citschedora-f4f986f9-b368-44a8-97a0-e8053dab69b9';
+    }
+
+    function isValidBookingPriorityMeta(data) {
+      return data.keys().hasAll(['projectId', 'datasetId', 'versionId', 'priorityOrder', 'roleCategoryCap', 'updatedAt']) &&
+        data.keys().hasOnly(['projectId', 'datasetId', 'versionId', 'priorityOrder', 'roleCategoryCap', 'updatedAt']) &&
+        data.projectId is string && data.projectId == 'cit-schedora' &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.versionId is string && data.versionId.size() >= 1 && data.versionId.size() <= 128 &&
+        data.priorityOrder is list && data.priorityOrder.size() >= 1 && data.priorityOrder.size() <= 16 && data.priorityOrder[0] is string &&
+        data.roleCategoryCap is map &&
+        data.updatedAt is string && data.updatedAt.size() >= 1 && data.updatedAt.size() <= 64;
+    }
+
+    function isValidSystemMetaDoc(metaId, data) {
+      return (metaId == 'projectConfig' && isValidProjectConfig(data)) ||
+        (metaId == 'activeDataset' && isValidActiveDatasetMeta(data)) ||
+        (metaId == 'databaseSchema' && isValidDatabaseSchemaMeta(data)) ||
+        (metaId == 'bookingPriority' && isValidBookingPriorityMeta(data));
+    }
+
+    // 4. Versioned Institutional Dataset Blueprints
+    function isValidDatasetRoot(data) {
+      return data.keys().hasAll(['datasetId', 'institute', 'activeVersionId', 'latestVersionId', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['datasetId', 'institute', 'activeVersionId', 'latestVersionId', 'createdAt', 'updatedAt']) &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 && data.datasetId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.institute is string && data.institute.size() >= 1 && data.institute.size() <= 200 &&
+        data.activeVersionId is string && data.activeVersionId.size() >= 1 && data.activeVersionId.size() <= 128 &&
+        data.latestVersionId is string && data.latestVersionId.size() >= 1 && data.latestVersionId.size() <= 128 &&
+        data.createdAt is string && data.createdAt.size() >= 1 && data.createdAt.size() <= 64 &&
+        data.updatedAt is string && data.updatedAt.size() >= 1 && data.updatedAt.size() <= 64;
+    }
+
+    function isValidDatasetVersion(data) {
+      return data.keys().hasAll(['datasetId', 'versionId', 'institute', 'checksum', 'sourceFilename', 'calendar', 'priority_order', 'role_category_cap', 'counts', 'status', 'importedAt', 'importedBy']) &&
+        data.keys().hasOnly(['datasetId', 'versionId', 'institute', 'checksum', 'sourceFilename', 'calendar', 'priority_order', 'role_category_cap', 'counts', 'status', 'importedAt', 'importedBy']) &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.versionId is string && data.versionId.size() >= 1 && data.versionId.size() <= 128 &&
+        data.institute is string && data.institute.size() >= 1 && data.institute.size() <= 200 &&
+        data.checksum is string && data.checksum.size() >= 16 && data.checksum.size() <= 128 &&
+        data.sourceFilename is string && data.sourceFilename.size() >= 1 && data.sourceFilename.size() <= 256 &&
+        data.calendar is map &&
+        data.priority_order is list && data.priority_order.size() >= 1 && data.priority_order.size() <= 16 && data.priority_order[0] is string &&
+        data.role_category_cap is map &&
+        data.counts is map &&
+        data.status is string && data.status in ['staged', 'validated', 'active', 'archived'] &&
+        data.importedAt is string && data.importedAt.size() >= 1 && data.importedAt.size() <= 64 &&
+        data.importedBy is string && data.importedBy.size() >= 1 && data.importedBy.size() <= 128;
+    }
+
+    function isValidVersionedRoom(data) {
+      return data.keys().hasAll(['id', 'datasetId', 'versionId', 'name', 'building', 'type', 'capacity', 'features', 'accessible', 'allowed_uses']) &&
+        data.keys().hasOnly(['id', 'datasetId', 'versionId', 'name', 'building', 'type', 'capacity', 'features', 'accessible', 'allowed_uses']) &&
+        data.id is string && data.id.size() >= 1 && data.id.size() <= 128 &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.versionId is string && data.versionId.size() >= 1 && data.versionId.size() <= 128 &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 200 &&
+        data.building is string && data.building.size() >= 1 && data.building.size() <= 200 &&
+        data.type is string && data.type.size() >= 1 && data.type.size() <= 64 &&
+        data.capacity is int && data.capacity >= 1 && data.capacity <= 5000 &&
+        data.features is list && data.features.size() <= 32 &&
+        data.accessible is bool &&
+        data.allowed_uses is list && data.allowed_uses.size() >= 1 && data.allowed_uses.size() <= 16 && data.allowed_uses[0] is string;
+    }
+
+    function isValidVersionedRoomUnavailability(data) {
+      return data.keys().hasAll(['id', 'datasetId', 'versionId', 'room_id', 'day', 'periods', 'reason']) &&
+        data.keys().hasOnly(['id', 'datasetId', 'versionId', 'room_id', 'day', 'periods', 'reason']) &&
+        data.id is string && data.id.size() >= 1 && data.id.size() <= 128 &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.versionId is string && data.versionId.size() >= 1 && data.versionId.size() <= 128 &&
+        data.room_id is string && data.room_id.size() >= 1 && data.room_id.size() <= 128 &&
+        data.day is string && data.day in ['MON', 'TUE', 'WED', 'THU', 'FRI'] &&
+        data.periods is list && data.periods.size() >= 1 && data.periods.size() <= 24 && data.periods[0] is int &&
+        data.reason is string && data.reason.size() <= 500;
+    }
+
+    function isValidVersionedFaculty(data) {
+      return data.keys().hasAll(['id', 'datasetId', 'versionId', 'name', 'department', 'max_hours_per_day', 'needs_accessible', 'unavailable', 'preferences']) &&
+        data.keys().hasOnly(['id', 'datasetId', 'versionId', 'name', 'department', 'max_hours_per_day', 'needs_accessible', 'unavailable', 'preferences']) &&
+        data.id is string && data.id.size() >= 1 && data.id.size() <= 128 &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.versionId is string && data.versionId.size() >= 1 && data.versionId.size() <= 128 &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 200 &&
+        data.department is string && data.department.size() >= 1 && data.department.size() <= 64 &&
+        data.max_hours_per_day is int && data.max_hours_per_day >= 1 && data.max_hours_per_day <= 12 &&
+        data.needs_accessible is bool &&
+        data.unavailable is list && data.unavailable.size() <= 32 &&
+        data.preferences is list && data.preferences.size() <= 32;
+    }
+
+    function isValidVersionedStudentGroup(data) {
+      return data.keys().hasAll(['id', 'datasetId', 'versionId', 'name', 'year', 'department', 'size', 'needs_accessible']) &&
+        data.keys().hasOnly(['id', 'datasetId', 'versionId', 'name', 'year', 'department', 'size', 'needs_accessible']) &&
+        data.id is string && data.id.size() >= 1 && data.id.size() <= 128 &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.versionId is string && data.versionId.size() >= 1 && data.versionId.size() <= 128 &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 200 &&
+        data.year is int && data.year >= 1 && data.year <= 10 &&
+        data.department is string && data.department.size() >= 1 && data.department.size() <= 64 &&
+        data.size is int && data.size >= 1 && data.size <= 5000 &&
+        data.needs_accessible is bool;
+    }
+
+    function isValidVersionedCourse(data) {
+      return data.keys().hasAll(['id', 'datasetId', 'versionId', 'title', 'department', 'year', 'lecture_hours', 'tutorial_hours', 'lab_blocks']) &&
+        data.keys().hasOnly(['id', 'datasetId', 'versionId', 'title', 'department', 'year', 'lecture_hours', 'tutorial_hours', 'lab_blocks']) &&
+        data.id is string && data.id.size() >= 1 && data.id.size() <= 128 &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.versionId is string && data.versionId.size() >= 1 && data.versionId.size() <= 128 &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+        data.department is string && data.department.size() >= 1 && data.department.size() <= 64 &&
+        data.year is int && data.year >= 1 && data.year <= 10 &&
+        data.lecture_hours is int && data.lecture_hours >= 0 && data.lecture_hours <= 16 &&
+        data.tutorial_hours is int && data.tutorial_hours >= 0 && data.tutorial_hours <= 16 &&
+        data.lab_blocks is int && data.lab_blocks >= 0 && data.lab_blocks <= 16;
+    }
+
+    function isValidVersionedSession(data) {
+      return data.keys().hasAll(['id', 'datasetId', 'versionId', 'course_id', 'kind', 'groups', 'faculty_id', 'size', 'duration', 'room_types', 'needs_accessible', 'basket_slot', 'fixed_slot']) &&
+        data.keys().hasOnly(['id', 'datasetId', 'versionId', 'course_id', 'kind', 'groups', 'faculty_id', 'size', 'duration', 'room_types', 'needs_accessible', 'basket_slot', 'fixed_slot']) &&
+        data.id is string && data.id.size() >= 1 && data.id.size() <= 128 &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.versionId is string && data.versionId.size() >= 1 && data.versionId.size() <= 128 &&
+        data.course_id is string && data.course_id.size() >= 1 && data.course_id.size() <= 128 &&
+        data.kind is string && data.kind in ['lecture', 'tutorial', 'lab'] &&
+        data.groups is list && data.groups.size() >= 1 && data.groups.size() <= 32 && data.groups[0] is string &&
+        data.faculty_id is string && data.faculty_id.size() >= 1 && data.faculty_id.size() <= 128 &&
+        data.size is int && data.size >= 1 && data.size <= 5000 &&
+        data.duration is int && data.duration >= 1 && data.duration <= 8 &&
+        data.room_types is list && data.room_types.size() >= 1 && data.room_types.size() <= 16 && data.room_types[0] is string &&
+        data.needs_accessible is bool;
+    }
+
+    function isValidVersionedBookingRequest(data) {
+      return data.keys().hasAll(['id', 'datasetId', 'versionId', 'submitted_at', 'requester', 'role', 'department', 'requested_category', 'effective_category', 'title', 'attendance', 'duration_periods', 'windows', 'room_types', 'needs', 'requested_room', 'mandatory_for_groups', 'series_id', 'raw_text', 'is_cancelled', 'cancellation']) &&
+        data.keys().hasOnly(['id', 'datasetId', 'versionId', 'submitted_at', 'requester', 'role', 'department', 'requested_category', 'effective_category', 'title', 'attendance', 'duration_periods', 'windows', 'room_types', 'needs', 'requested_room', 'mandatory_for_groups', 'series_id', 'raw_text', 'is_cancelled', 'cancellation']) &&
+        data.id is string && data.id.size() >= 1 && data.id.size() <= 128 &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.versionId is string && data.versionId.size() >= 1 && data.versionId.size() <= 128 &&
+        data.submitted_at is string && data.submitted_at.size() >= 1 && data.submitted_at.size() <= 64 &&
+        data.requester is string && data.requester.size() >= 1 && data.requester.size() <= 200 &&
+        data.role is string && data.role in ['admin', 'department_coordinator', 'faculty', 'club'] &&
+        data.requested_category is string && data.requested_category.size() >= 1 && data.requested_category.size() <= 64 &&
+        data.effective_category is string && data.effective_category.size() >= 1 && data.effective_category.size() <= 64 &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 300 &&
+        data.attendance is int && data.attendance >= 1 && data.attendance <= 10000 &&
+        data.duration_periods is int && data.duration_periods >= 1 && data.duration_periods <= 24 &&
+        data.windows is list && data.windows.size() >= 1 && data.windows.size() <= 16 &&
+        data.room_types is list && data.room_types.size() >= 1 && data.room_types.size() <= 16 && data.room_types[0] is string &&
+        data.needs is list && data.needs.size() <= 16 &&
+        data.mandatory_for_groups is list && data.mandatory_for_groups.size() <= 32 &&
+        data.raw_text is string && data.raw_text.size() >= 1 && data.raw_text.size() <= 2000 &&
+        data.is_cancelled is bool;
+    }
+
+    function isValidVersionedCancellation(data) {
+      return data.keys().hasAll(['request_id', 'datasetId', 'versionId', 'cancelled_at', 'by', 'note']) &&
+        data.keys().hasOnly(['request_id', 'datasetId', 'versionId', 'cancelled_at', 'by', 'note']) &&
+        data.request_id is string && data.request_id.size() >= 1 && data.request_id.size() <= 128 &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.versionId is string && data.versionId.size() >= 1 && data.versionId.size() <= 128 &&
+        data.cancelled_at is string && data.cancelled_at.size() >= 1 && data.cancelled_at.size() <= 64 &&
+        data.by is string && data.by.size() >= 1 && data.by.size() <= 200 &&
+        data.note is string && data.note.size() <= 500;
+    }
+
+    function isValidVersionedExamination(data) {
+      return data.keys().hasAll(['id', 'datasetId', 'versionId', 'course_ids', 'groups', 'size', 'duration_hours']) &&
+        data.keys().hasOnly(['id', 'datasetId', 'versionId', 'course_ids', 'groups', 'size', 'duration_hours']) &&
+        data.id is string && data.id.size() >= 1 && data.id.size() <= 128 &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.versionId is string && data.versionId.size() >= 1 && data.versionId.size() <= 128 &&
+        data.course_ids is list && data.course_ids.size() >= 1 && data.course_ids.size() <= 16 && data.course_ids[0] is string &&
+        data.groups is list && data.groups.size() >= 1 && data.groups.size() <= 32 && data.groups[0] is string &&
+        data.size is int && data.size >= 1 && data.size <= 5000 &&
+        data.duration_hours is int && data.duration_hours >= 1 && data.duration_hours <= 8;
+    }
+
+    function isValidDatasetImportJob(data) {
+      return data.keys().hasAll(['importJobId', 'datasetId', 'versionId', 'sourceFilename', 'sourceChecksum', 'startedAt', 'completedAt', 'counts', 'validationPassed', 'referentialIntegrityPassed', 'status', 'importedBy', 'errorMessage']) &&
+        data.keys().hasOnly(['importJobId', 'datasetId', 'versionId', 'sourceFilename', 'sourceChecksum', 'startedAt', 'completedAt', 'counts', 'validationPassed', 'referentialIntegrityPassed', 'status', 'importedBy', 'errorMessage']) &&
+        data.importJobId is string && data.importJobId.size() >= 1 && data.importJobId.size() <= 128 &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.versionId is string && data.versionId.size() >= 1 && data.versionId.size() <= 128 &&
+        data.sourceFilename is string && data.sourceFilename.size() >= 1 && data.sourceFilename.size() <= 256 &&
+        data.sourceChecksum is string && data.sourceChecksum.size() >= 16 && data.sourceChecksum.size() <= 128 &&
+        data.startedAt is string && data.startedAt.size() >= 1 && data.startedAt.size() <= 64 &&
+        data.counts is map &&
+        data.validationPassed is bool &&
+        data.referentialIntegrityPassed is bool &&
+        data.status is string && data.status in ['running', 'completed', 'already_imported', 'failed'] &&
+        data.importedBy is string && data.importedBy.size() >= 1 && data.importedBy.size() <= 128;
+    }
+
+    // 5. Operational Entity Validation Blueprints
+    function isValidAdminPrivilege(data) {
+      return data.keys().hasAll(['uid', 'email', 'grantedAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'grantedAt']) &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 254 &&
+        data.grantedAt is timestamp;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'role', 'departmentId', 'facultyId', 'clubId', 'accountStatus', 'authorizationVersion', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'displayName', 'role', 'departmentId', 'facultyId', 'clubId', 'accountStatus', 'authorizationVersion', 'createdAt', 'updatedAt']) &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 254 &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 160 &&
+        data.role is string && data.role in ['admin', 'department_coordinator', 'faculty', 'club'] &&
+        data.accountStatus is string && data.accountStatus in ['active', 'suspended', 'disabled'] &&
+        data.authorizationVersion is int && data.authorizationVersion >= 1 &&
+        data.createdAt is string && data.createdAt.size() >= 1 && data.createdAt.size() <= 64 &&
+        data.updatedAt is string && data.updatedAt.size() >= 1 && data.updatedAt.size() <= 64;
+    }
+
+    function isValidSchedule(data) {
+      return data.keys().hasAll(['scheduleId', 'datasetId', 'datasetVersionId', 'sourceDatasetChecksum', 'scheduleType', 'solverName', 'solverVersion', 'solverStatus', 'validationStatus', 'validationScope', 'hardViolationCount', 'softPenaltyTotal', 'softPenaltyBreakdown', 'generatedAt', 'generatedBy', 'numberOfSessions', 'scheduleState', 'solveDurationMs', 'objectiveValue', 'bestBound', 'optimalityGap', 'conflicts', 'branches']) &&
+        data.keys().hasOnly(['scheduleId', 'datasetId', 'datasetVersionId', 'sourceDatasetChecksum', 'scheduleType', 'solverName', 'solverVersion', 'solverStatus', 'validationStatus', 'validationScope', 'hardViolationCount', 'softPenaltyTotal', 'softPenaltyBreakdown', 'generatedAt', 'generatedBy', 'numberOfSessions', 'scheduleState', 'solveDurationMs', 'objectiveValue', 'bestBound', 'optimalityGap', 'conflicts', 'branches']) &&
+        data.scheduleId is string && data.scheduleId.size() >= 1 && data.scheduleId.size() <= 128 && data.scheduleId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.datasetVersionId is string && data.datasetVersionId.size() >= 1 && data.datasetVersionId.size() <= 128 &&
+        data.sourceDatasetChecksum is string && data.sourceDatasetChecksum.size() >= 16 && data.sourceDatasetChecksum.size() <= 128 &&
+        data.scheduleType is string && data.scheduleType in ['weekly', 'spectra', 'examination', 'repaired'] &&
+        data.solverName is string && data.solverName.size() >= 1 && data.solverName.size() <= 128 &&
+        data.solverVersion is string && data.solverVersion.size() >= 1 && data.solverVersion.size() <= 128 &&
+        data.solverStatus is string && data.solverStatus in ['OPTIMAL', 'FEASIBLE', 'INFEASIBLE', 'UNKNOWN', 'MODEL_INVALID'] &&
+        data.validationStatus is string && data.validationStatus in ['valid', 'invalid', 'pending'] &&
+        data.validationScope is string && data.validationScope.size() >= 1 && data.validationScope.size() <= 160 &&
+        data.hardViolationCount is int && data.hardViolationCount >= 0 &&
+        data.softPenaltyTotal is int && data.softPenaltyTotal >= 0 &&
+        data.softPenaltyBreakdown is map &&
+        data.generatedAt is string && data.generatedAt.size() >= 1 && data.generatedAt.size() <= 64 &&
+        data.generatedBy is string && data.generatedBy.size() >= 1 && data.generatedBy.size() <= 128 &&
+        data.numberOfSessions is int && data.numberOfSessions >= 0 && data.numberOfSessions <= 5000 &&
+        data.scheduleState is string && data.scheduleState in ['weekly_candidate', 'validated', 'published', 'superseded'] &&
+        data.solveDurationMs is int && data.solveDurationMs >= 0 &&
+        data.conflicts is int && data.conflicts >= 0 &&
+        data.branches is int && data.branches >= 0;
+    }
+
+    function isValidSessionAssignment(data) {
+      return data.keys().hasAll(['sessionId', 'scheduleId', 'day', 'startPeriod', 'roomId', 'duration', 'courseId', 'kind', 'facultyId', 'groups', 'basketSlot']) &&
+        data.keys().hasOnly(['sessionId', 'scheduleId', 'day', 'startPeriod', 'roomId', 'duration', 'courseId', 'kind', 'facultyId', 'groups', 'basketSlot']) &&
+        data.sessionId is string && data.sessionId.size() >= 1 && data.sessionId.size() <= 128 &&
+        data.scheduleId is string && data.scheduleId.size() >= 1 && data.scheduleId.size() <= 128 &&
+        data.day is string && data.day in ['MON', 'TUE', 'WED', 'THU', 'FRI'] &&
+        data.startPeriod is int && data.startPeriod >= 1 && data.startPeriod <= 9 &&
+        data.roomId is string && data.roomId.size() >= 1 && data.roomId.size() <= 128 &&
+        data.duration is int && data.duration >= 1 && data.duration <= 4 &&
+        data.courseId is string && data.courseId.size() >= 1 && data.courseId.size() <= 128 &&
+        data.kind is string && data.kind in ['lecture', 'tutorial', 'lab'] &&
+        data.facultyId is string && data.facultyId.size() >= 1 && data.facultyId.size() <= 128 &&
+        data.groups is list && data.groups.size() >= 1 && data.groups.size() <= 32 && data.groups[0] is string;
+    }
+
+    function isValidScheduleValidationReport(data) {
+      return data.keys().hasAll(['reportId', 'scheduleId', 'datasetId', 'scheduleDatasetId', 'validationScope', 'isValid', 'hardViolationCount', 'hardByRule', 'hardViolations', 'softPenalties', 'softTotal', 'solverSoftPenalties', 'solverSoftTotal', 'parityVerified', 'warnings', 'validatedAt', 'validatedBy']) &&
+        data.keys().hasOnly(['reportId', 'scheduleId', 'datasetId', 'scheduleDatasetId', 'validationScope', 'isValid', 'hardViolationCount', 'hardByRule', 'hardViolations', 'softPenalties', 'softTotal', 'solverSoftPenalties', 'solverSoftTotal', 'parityVerified', 'warnings', 'validatedAt', 'validatedBy']) &&
+        data.reportId is string && data.reportId.size() >= 1 && data.reportId.size() <= 128 &&
+        data.scheduleId is string && data.scheduleId.size() >= 1 && data.scheduleId.size() <= 128 &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.scheduleDatasetId is string && data.scheduleDatasetId.size() >= 1 && data.scheduleDatasetId.size() <= 128 &&
+        data.validationScope is string && data.validationScope.size() >= 1 && data.validationScope.size() <= 160 &&
+        data.isValid is bool &&
+        data.hardViolationCount is int && data.hardViolationCount >= 0 &&
+        data.hardByRule is map &&
+        data.hardViolations is list &&
+        data.softPenalties is map &&
+        data.softTotal is int && data.softTotal >= 0 &&
+        data.solverSoftPenalties is map &&
+        data.solverSoftTotal is int && data.solverSoftTotal >= 0 &&
+        data.parityVerified is bool &&
+        data.warnings is list &&
+        data.validatedAt is string && data.validatedAt.size() >= 1 && data.validatedAt.size() <= 64 &&
+        data.validatedBy is string && data.validatedBy.size() >= 1 && data.validatedBy.size() <= 128;
+    }
+
+    function isValidExaminationSchedule(data) {
+      return data.keys().hasAll(['examScheduleId', 'datasetId', 'datasetVersionId', 'sourceDatasetChecksum', 'solverName', 'solverVersion', 'solverStatus', 'validationStatus', 'validationScope', 'officialSoftPenalty', 'generationTimestamp', 'generatedBy', 'totalExams', 'scheduledExams', 'roomsAllocated', 'scheduleState', 'solveDurationMs', 'conflicts', 'branches']) &&
+        data.keys().hasOnly(['examScheduleId', 'datasetId', 'datasetVersionId', 'sourceDatasetChecksum', 'solverName', 'solverVersion', 'solverStatus', 'validationStatus', 'validationScope', 'officialSoftPenalty', 'generationTimestamp', 'generatedBy', 'totalExams', 'scheduledExams', 'roomsAllocated', 'scheduleState', 'solveDurationMs', 'objectiveValue', 'bestBound', 'optimalityGap', 'conflicts', 'branches']) &&
+        data.examScheduleId is string && data.examScheduleId.size() >= 1 && data.examScheduleId.size() <= 128 && data.examScheduleId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.datasetVersionId is string && data.datasetVersionId.size() >= 1 && data.datasetVersionId.size() <= 128 &&
+        data.sourceDatasetChecksum is string && data.sourceDatasetChecksum.size() >= 16 && data.sourceDatasetChecksum.size() <= 128 &&
+        data.solverName is string && data.solverName.size() >= 1 && data.solverName.size() <= 128 &&
+        data.solverVersion is string && data.solverVersion.size() >= 1 && data.solverVersion.size() <= 128 &&
+        data.solverStatus is string && data.solverStatus in ['OPTIMAL', 'FEASIBLE', 'INFEASIBLE', 'UNKNOWN', 'MODEL_INVALID'] &&
+        data.validationStatus is string && data.validationStatus in ['valid', 'invalid', 'pending'] &&
+        data.validationScope is string && data.validationScope.size() >= 1 && data.validationScope.size() <= 160 &&
+        data.officialSoftPenalty is int && data.officialSoftPenalty >= 0 &&
+        data.generationTimestamp is string && data.generationTimestamp.size() >= 1 && data.generationTimestamp.size() <= 64 &&
+        data.generatedBy is string && data.generatedBy.size() >= 1 && data.generatedBy.size() <= 128 &&
+        data.totalExams is int && data.totalExams >= 0 && data.totalExams <= 5000 &&
+        data.scheduledExams is int && data.scheduledExams >= 0 && data.scheduledExams <= 5000 &&
+        data.roomsAllocated is int && data.roomsAllocated >= 0 &&
+        data.scheduleState is string && data.scheduleState in ['examination_candidate', 'validated', 'published', 'superseded'] &&
+        data.solveDurationMs is int && data.solveDurationMs >= 0 &&
+        data.conflicts is int && data.conflicts >= 0 &&
+        data.branches is int && data.branches >= 0;
+    }
+
+    function isValidExamAllocation(data) {
+      return data.keys().hasAll(['examId', 'examScheduleId', 'day', 'session', 'rooms', 'effectiveCapacity', 'candidateCount', 'courseIds', 'groups']) &&
+        data.keys().hasOnly(['examId', 'examScheduleId', 'day', 'session', 'rooms', 'effectiveCapacity', 'candidateCount', 'courseIds', 'groups']) &&
+        data.examId is string && data.examId.size() >= 1 && data.examId.size() <= 128 &&
+        data.examScheduleId is string && data.examScheduleId.size() >= 1 && data.examScheduleId.size() <= 128 &&
+        data.day is string && data.day in ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] &&
+        data.session is string && data.session in ['AM', 'PM'] &&
+        data.rooms is list && data.rooms.size() >= 1 && data.rooms.size() <= 32 && data.rooms[0] is string &&
+        data.effectiveCapacity is int && data.effectiveCapacity >= 1 &&
+        data.candidateCount is int && data.candidateCount >= 1 &&
+        data.courseIds is list && data.courseIds.size() <= 32 &&
+        data.groups is list && data.groups.size() <= 64;
+    }
+
+    function isValidExamValidationReport(data) {
+      return data.keys().hasAll(['reportId', 'examScheduleId', 'datasetId', 'validationScope', 'isValid', 'hardViolationCount', 'hardByRule', 'hardViolations', 'officialSoftPenalty', 'solverSoftPenalty', 'parityVerified', 'totalExams', 'scheduledExams', 'missingExams', 'duplicateExams', 'ineligibleRoomViolations', 'groupClashes', 'roomConflicts', 'capacityViolations', 'warnings', 'validatedAt', 'validatedBy']) &&
+        data.keys().hasOnly(['reportId', 'examScheduleId', 'datasetId', 'validationScope', 'isValid', 'hardViolationCount', 'hardByRule', 'hardViolations', 'officialSoftPenalty', 'solverSoftPenalty', 'parityVerified', 'totalExams', 'scheduledExams', 'missingExams', 'duplicateExams', 'ineligibleRoomViolations', 'groupClashes', 'roomConflicts', 'capacityViolations', 'warnings', 'validatedAt', 'validatedBy']) &&
+        data.reportId is string && data.reportId.size() >= 1 && data.reportId.size() <= 128 &&
+        data.examScheduleId is string && data.examScheduleId.size() >= 1 && data.examScheduleId.size() <= 128 &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.validationScope is string && data.validationScope.size() >= 1 && data.validationScope.size() <= 160 &&
+        data.isValid is bool &&
+        data.hardViolationCount is int && data.hardViolationCount >= 0 &&
+        data.hardByRule is map &&
+        data.hardViolations is list &&
+        data.officialSoftPenalty is int && data.officialSoftPenalty >= 0 &&
+        data.solverSoftPenalty is int && data.solverSoftPenalty >= 0 &&
+        data.parityVerified is bool &&
+        data.totalExams is int && data.totalExams >= 0 &&
+        data.scheduledExams is int && data.scheduledExams >= 0 &&
+        data.missingExams is list &&
+        data.duplicateExams is list &&
+        data.ineligibleRoomViolations is int && data.ineligibleRoomViolations >= 0 &&
+        data.groupClashes is int && data.groupClashes >= 0 &&
+        data.roomConflicts is int && data.roomConflicts >= 0 &&
+        data.capacityViolations is int && data.capacityViolations >= 0 &&
+        data.warnings is list &&
+        data.validatedAt is string && data.validatedAt.size() >= 1 && data.validatedAt.size() <= 64 &&
+        data.validatedBy is string && data.validatedBy.size() >= 1 && data.validatedBy.size() <= 128;
+    }
+
+    function isValidBookingRequest(data) {
+      return data.keys().hasAll(['requestId', 'requesterUserId', 'category', 'title', 'status', 'createdAt']) &&
+        data.keys().hasOnly(['requestId', 'requesterUserId', 'category', 'title', 'status', 'createdAt']) &&
+        data.requestId is string && data.requestId.size() >= 1 && data.requestId.size() <= 128 && data.requestId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.requesterUserId is string && data.requesterUserId.size() >= 1 && data.requesterUserId.size() <= 128 &&
+        data.category is string && data.category.size() >= 1 && data.category.size() <= 64 &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+        data.status is string && data.status in ['pending', 'approved', 'rejected', 'alternative_offered', 'cancelled'] &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidBookingDecision(data) {
+      return data.keys().hasAll(['decisionId', 'requestId', 'outcome', 'reason', 'decidedAt']) &&
+        data.keys().hasOnly(['decisionId', 'requestId', 'outcome', 'reason', 'decidedAt']) &&
+        data.decisionId is string && data.decisionId.size() >= 1 && data.decisionId.size() <= 128 && data.decisionId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.requestId is string && data.requestId.size() >= 1 && data.requestId.size() <= 128 &&
+        data.outcome is string && data.outcome in ['approved', 'rejected', 'alternative_offered', 'cancelled'] &&
+        data.reason is string && data.reason.size() >= 1 && data.reason.size() <= 1000 &&
+        data.decidedAt is timestamp;
+    }
+
+    function isValidDepartmentEventBooking(data) {
+      return data.keys().hasAll(['bookingId', 'requestId', 'departmentId', 'coordinatorUid', 'status']) &&
+        data.keys().hasOnly(['bookingId', 'requestId', 'departmentId', 'coordinatorUid', 'status']) &&
+        data.bookingId is string && data.bookingId.size() >= 1 && data.bookingId.size() <= 128 &&
+        data.requestId is string && data.requestId.size() >= 1 && data.requestId.size() <= 128 &&
+        data.departmentId is string && data.departmentId.size() >= 1 && data.departmentId.size() <= 64 &&
+        data.coordinatorUid is string && data.coordinatorUid.size() >= 1 && data.coordinatorUid.size() <= 128 &&
+        data.status is string && data.status in ['pending', 'approved', 'rejected', 'escalated'];
+    }
+
+    function isValidUnavailabilityRequest(data) {
+      return data.keys().hasAll(['requestId', 'facultyId', 'day', 'period', 'status']) &&
+        data.keys().hasOnly(['requestId', 'facultyId', 'day', 'period', 'status']) &&
+        data.requestId is string && data.requestId.size() >= 1 && data.requestId.size() <= 128 &&
+        data.facultyId is string && data.facultyId.size() >= 1 && data.facultyId.size() <= 128 &&
+        data.day is string && data.day.size() >= 1 && data.day.size() <= 32 &&
+        data.period is string && data.period.size() >= 1 && data.period.size() <= 32 &&
+        data.status is string && data.status in ['pending', 'approved', 'rejected'];
+    }
+
+    function isValidAdditionalSessionRequest(data) {
+      return data.keys().hasAll(['requestId', 'facultyId', 'courseId', 'status']) &&
+        data.keys().hasOnly(['requestId', 'facultyId', 'courseId', 'status']) &&
+        data.requestId is string && data.requestId.size() >= 1 && data.requestId.size() <= 128 &&
+        data.facultyId is string && data.facultyId.size() >= 1 && data.facultyId.size() <= 128 &&
+        data.courseId is string && data.courseId.size() >= 1 && data.courseId.size() <= 128 &&
+        data.status is string && data.status in ['pending', 'approved', 'rejected'];
+    }
+
+    function isValidSessionChangeRequest(data) {
+      return data.keys().hasAll(['requestId', 'sessionId', 'facultyId', 'status']) &&
+        data.keys().hasOnly(['requestId', 'sessionId', 'facultyId', 'status']) &&
+        data.requestId is string && data.requestId.size() >= 1 && data.requestId.size() <= 128 &&
+        data.sessionId is string && data.sessionId.size() >= 1 && data.sessionId.size() <= 128 &&
+        data.facultyId is string && data.facultyId.size() >= 1 && data.facultyId.size() <= 128 &&
+        data.status is string && data.status in ['pending', 'endorsed', 'approved', 'rejected'];
+    }
+
+    function isValidManualAllocation(data) {
+      return data.keys().hasAll(['allocationId', 'adminUserId', 'targetId', 'roomId', 'feasibilityVerified']) &&
+        data.keys().hasOnly(['allocationId', 'adminUserId', 'targetId', 'roomId', 'feasibilityVerified']) &&
+        data.allocationId is string && data.allocationId.size() >= 1 && data.allocationId.size() <= 128 &&
+        data.adminUserId is string && data.adminUserId.size() >= 1 && data.adminUserId.size() <= 128 &&
+        data.targetId is string && data.targetId.size() >= 1 && data.targetId.size() <= 128 &&
+        data.roomId is string && data.roomId.size() >= 1 && data.roomId.size() <= 128 &&
+        data.feasibilityVerified is bool;
+    }
+
+    function isValidApprovalRecord(data) {
+      return data.keys().hasAll(['approvalId', 'entityType', 'entityId', 'approverUserId', 'decision']) &&
+        data.keys().hasOnly(['approvalId', 'entityType', 'entityId', 'approverUserId', 'decision']) &&
+        data.approvalId is string && data.approvalId.size() >= 1 && data.approvalId.size() <= 128 &&
+        data.entityType is string && data.entityType.size() >= 1 && data.entityType.size() <= 64 &&
+        data.entityId is string && data.entityId.size() >= 1 && data.entityId.size() <= 128 &&
+        data.approverUserId is string && data.approverUserId.size() >= 1 && data.approverUserId.size() <= 128 &&
+        data.decision is string && data.decision in ['approved', 'rejected'];
+    }
+
+    function isValidDisruptionRecord(data) {
+      return data.keys().hasAll(['disruptionId', 'datasetId', 'storageObjectPath', 'status']) &&
+        data.keys().hasOnly(['disruptionId', 'datasetId', 'storageObjectPath', 'status']) &&
+        data.disruptionId is string && data.disruptionId.size() >= 1 && data.disruptionId.size() <= 128 &&
+        data.datasetId is string && data.datasetId.size() >= 1 && data.datasetId.size() <= 128 &&
+        data.storageObjectPath is string && data.storageObjectPath.size() >= 1 && data.storageObjectPath.size() <= 512 &&
+        data.status is string && data.status in ['staged', 'processed', 'applied'];
+    }
+
+    function isValidRescheduleProposal(data) {
+      return data.keys().hasAll(['proposalId', 'disruptionId', 'validatorPassed', 'status']) &&
+        data.keys().hasOnly(['proposalId', 'disruptionId', 'validatorPassed', 'status']) &&
+        data.proposalId is string && data.proposalId.size() >= 1 && data.proposalId.size() <= 128 &&
+        data.disruptionId is string && data.disruptionId.size() >= 1 && data.disruptionId.size() <= 128 &&
+        data.validatorPassed is bool &&
+        data.status is string && data.status in ['staged', 'approved', 'rejected'];
+    }
+
+    function isValidRepairResult(data) {
+      return data.keys().hasAll(['repairId', 'baselineScheduleId', 'disruptionId', 'sessionsMovedCount', 'validatorPassed', 'approvalDecision']) &&
+        data.keys().hasOnly(['repairId', 'baselineScheduleId', 'disruptionId', 'sessionsMovedCount', 'validatorPassed', 'approvalDecision']) &&
+        data.repairId is string && data.repairId.size() >= 1 && data.repairId.size() <= 128 &&
+        data.baselineScheduleId is string && data.baselineScheduleId.size() >= 1 && data.baselineScheduleId.size() <= 128 &&
+        data.disruptionId is string && data.disruptionId.size() >= 1 && data.disruptionId.size() <= 128 &&
+        data.sessionsMovedCount is int && data.sessionsMovedCount >= 0 &&
+        data.validatorPassed is bool &&
+        data.approvalDecision is string && data.approvalDecision in ['pending', 'approved', 'rejected'];
+    }
+
+    function isValidAppliedChange(data) {
+      return data.keys().hasAll(['changeId', 'repairId', 'baselineScheduleId', 'disruptionId', 'approvedByUid', 'appliedAt']) &&
+        data.keys().hasOnly(['changeId', 'repairId', 'baselineScheduleId', 'disruptionId', 'approvedByUid', 'appliedAt']) &&
+        data.changeId is string && data.changeId.size() >= 1 && data.changeId.size() <= 128 &&
+        data.repairId is string && data.repairId.size() >= 1 && data.repairId.size() <= 128 &&
+        data.baselineScheduleId is string && data.baselineScheduleId.size() >= 1 && data.baselineScheduleId.size() <= 128 &&
+        data.disruptionId is string && data.disruptionId.size() >= 1 && data.disruptionId.size() <= 128 &&
+        data.approvedByUid is string && data.approvedByUid.size() >= 1 && data.approvedByUid.size() <= 128 &&
+        data.appliedAt is timestamp;
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['auditId', 'actorUid', 'actorEmail', 'actorRole', 'targetUid', 'module', 'action', 'outcome', 'metadata', 'createdAt']) &&
+        data.keys().hasOnly(['auditId', 'actorUid', 'actorEmail', 'actorRole', 'targetUid', 'module', 'action', 'outcome', 'metadata', 'createdAt']) &&
+        data.auditId is string && data.auditId.size() >= 1 && data.auditId.size() <= 128 &&
+        data.actorUid is string && data.actorUid.size() >= 1 && data.actorUid.size() <= 128 &&
+        data.module is string && data.module.size() >= 1 && data.module.size() <= 64 &&
+        data.action is string && data.action.size() >= 1 && data.action.size() <= 128 &&
+        data.outcome is string && data.outcome in ['success', 'failure', 'denied'] &&
+        data.metadata is map &&
+        data.createdAt is string && data.createdAt.size() >= 1 && data.createdAt.size() <= 64;
+    }
+
+    function isValidSystemSetting(data) {
+      return data.keys().hasAll(['settingKey', 'updatedByUserId', 'updatedAt']) &&
+        data.keys().hasOnly(['settingKey', 'updatedByUserId', 'updatedAt']) &&
+        data.settingKey is string && data.settingKey.size() >= 1 && data.settingKey.size() <= 128 &&
+        data.updatedByUserId is string && data.updatedByUserId.size() >= 1 && data.updatedByUserId.size() <= 128 &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidExportRecord(data) {
+      return data.keys().hasAll(['exportId', 'artifactType', 'storageObjectPath', 'createdAt']) &&
+        data.keys().hasOnly(['exportId', 'artifactType', 'storageObjectPath', 'createdAt']) &&
+        data.exportId is string && data.exportId.size() >= 1 && data.exportId.size() <= 128 &&
+        data.artifactType is string && data.artifactType in ['schedule.json', 'schedule_after.json', 'report'] &&
+        data.storageObjectPath is string && data.storageObjectPath.size() >= 1 && data.storageObjectPath.size() <= 512 &&
+        data.createdAt is timestamp;
+    }
+
+    // 6. Collection Match Blocks (All Blueprint Paths)
+
+    match /systemMeta/{metaId} {
+      allow get: if metaId in ['projectConfig', 'activeDataset', 'databaseSchema', 'bookingPriority'] &&
+        (resource == null || resource.data.projectId == 'cit-schedora');
+      allow list: if false;
+      allow create: if metaId in ['projectConfig', 'activeDataset', 'databaseSchema', 'bookingPriority'] &&
+        isValidSystemMetaDoc(metaId, incoming());
+      allow update: if metaId in ['projectConfig', 'activeDataset', 'databaseSchema', 'bookingPriority'] &&
+        isValidSystemMetaDoc(metaId, incoming()) &&
+        incoming().projectId == existing().projectId &&
+        (metaId != 'projectConfig' || incoming().createdAt == existing().createdAt);
+      allow delete: if false;
+    }
+
+    match /datasets/{datasetId} {
+      allow get: if isValidId(datasetId) && (resource == null || resource.data.datasetId == datasetId) && hasProjectConfig();
+      allow list: if resource.data.datasetId is string && hasProjectConfig();
+      allow create: if isValidId(datasetId) && isValidDatasetRoot(incoming()) && incoming().datasetId == datasetId && hasProjectConfig();
+      allow update: if isValidId(datasetId) && isValidDatasetRoot(incoming()) && incoming().datasetId == existing().datasetId && incoming().createdAt == existing().createdAt && hasProjectConfig();
+      allow delete: if false;
+
+      match /versions/{versionId} {
+        allow get: if isValidId(datasetId) && isValidId(versionId) && (resource == null || resource.data.versionId == versionId) && hasProjectConfig();
+        allow list: if resource.data.datasetId == datasetId && hasProjectConfig();
+        allow create: if isValidId(datasetId) && isValidId(versionId) && isValidDatasetVersion(incoming()) && incoming().datasetId == datasetId && incoming().versionId == versionId && hasProjectConfig();
+        allow update: if isValidId(datasetId) && isValidId(versionId) && isValidDatasetVersion(incoming()) && incoming().datasetId == existing().datasetId && incoming().versionId == existing().versionId && incoming().checksum == existing().checksum && hasProjectConfig();
+        allow delete: if false;
+
+        match /rooms/{roomId} {
+          allow get: if isValidId(roomId) && (resource == null || resource.data.id == roomId) && hasProjectConfig();
+          allow list: if resource.data.datasetId == datasetId;
+          allow create: if isValidId(roomId) && isValidVersionedRoom(incoming()) && incoming().id == roomId && incoming().datasetId == datasetId && incoming().versionId == versionId && hasProjectConfig();
+          allow update: if isValidId(roomId) && isValidVersionedRoom(incoming()) && incoming().id == existing().id && incoming().datasetId == existing().datasetId && incoming().versionId == existing().versionId && hasProjectConfig();
+          allow delete: if false;
+        }
+
+        match /roomUnavailability/{unavailabilityId} {
+          allow get: if isValidId(unavailabilityId) && (resource == null || resource.data.id == unavailabilityId) && hasProjectConfig();
+          allow list: if resource.data.datasetId == datasetId;
+          allow create: if isValidId(unavailabilityId) && isValidVersionedRoomUnavailability(incoming()) && incoming().id == unavailabilityId && incoming().datasetId == datasetId && incoming().versionId == versionId && hasProjectConfig();
+          allow update: if isValidId(unavailabilityId) && isValidVersionedRoomUnavailability(incoming()) && incoming().id == existing().id && incoming().datasetId == existing().datasetId && incoming().versionId == existing().versionId && hasProjectConfig();
+          allow delete: if false;
+        }
+
+        match /faculty/{facultyId} {
+          allow get: if isValidId(facultyId) && (resource == null || resource.data.id == facultyId) && hasProjectConfig();
+          allow list: if resource.data.datasetId == datasetId;
+          allow create: if isValidId(facultyId) && isValidVersionedFaculty(incoming()) && incoming().id == facultyId && incoming().datasetId == datasetId && incoming().versionId == versionId && hasProjectConfig();
+          allow update: if isValidId(facultyId) && isValidVersionedFaculty(incoming()) && incoming().id == existing().id && incoming().datasetId == existing().datasetId && incoming().versionId == existing().versionId && hasProjectConfig();
+          allow delete: if false;
+        }
+
+        match /studentGroups/{groupId} {
+          allow get: if isValidId(groupId) && (resource == null || resource.data.id == groupId) && hasProjectConfig();
+          allow list: if resource.data.datasetId == datasetId;
+          allow create: if isValidId(groupId) && isValidVersionedStudentGroup(incoming()) && incoming().id == groupId && incoming().datasetId == datasetId && incoming().versionId == versionId && hasProjectConfig();
+          allow update: if isValidId(groupId) && isValidVersionedStudentGroup(incoming()) && incoming().id == existing().id && incoming().datasetId == existing().datasetId && incoming().versionId == existing().versionId && hasProjectConfig();
+          allow delete: if false;
+        }
+
+        match /courses/{courseId} {
+          allow get: if isValidId(courseId) && (resource == null || resource.data.id == courseId) && hasProjectConfig();
+          allow list: if resource.data.datasetId == datasetId;
+          allow create: if isValidId(courseId) && isValidVersionedCourse(incoming()) && incoming().id == courseId && incoming().datasetId == datasetId && incoming().versionId == versionId && hasProjectConfig();
+          allow update: if isValidId(courseId) && isValidVersionedCourse(incoming()) && incoming().id == existing().id && incoming().datasetId == existing().datasetId && incoming().versionId == existing().versionId && hasProjectConfig();
+          allow delete: if false;
+        }
+
+        match /sessions/{sessionId} {
+          allow get: if isValidId(sessionId) && (resource == null || resource.data.id == sessionId) && hasProjectConfig();
+          allow list: if resource.data.datasetId == datasetId;
+          allow create: if isValidId(sessionId) && isValidVersionedSession(incoming()) && incoming().id == sessionId && incoming().datasetId == datasetId && incoming().versionId == versionId && hasProjectConfig();
+          allow update: if isValidId(sessionId) && isValidVersionedSession(incoming()) && incoming().id == existing().id && incoming().datasetId == existing().datasetId && incoming().versionId == existing().versionId && hasProjectConfig();
+          allow delete: if false;
+        }
+
+        match /bookingRequests/{requestId} {
+          allow get: if isValidId(requestId) && (resource == null || resource.data.id == requestId) && hasProjectConfig();
+          allow list: if resource.data.datasetId == datasetId;
+          allow create: if isValidId(requestId) && isValidVersionedBookingRequest(incoming()) && incoming().id == requestId && incoming().datasetId == datasetId && incoming().versionId == versionId && hasProjectConfig();
+          allow update: if isValidId(requestId) && isValidVersionedBookingRequest(incoming()) && incoming().id == existing().id && incoming().datasetId == existing().datasetId && incoming().versionId == existing().versionId && hasProjectConfig();
+          allow delete: if false;
+        }
+
+        match /cancellations/{requestId} {
+          allow get: if isValidId(requestId) && (resource == null || resource.data.request_id == requestId) && hasProjectConfig();
+          allow list: if resource.data.datasetId == datasetId;
+          allow create: if isValidId(requestId) && isValidVersionedCancellation(incoming()) && incoming().request_id == requestId && incoming().datasetId == datasetId && incoming().versionId == versionId && hasProjectConfig();
+          allow update: if isValidId(requestId) && isValidVersionedCancellation(incoming()) && incoming().request_id == existing().request_id && incoming().datasetId == existing().datasetId && incoming().versionId == existing().versionId && hasProjectConfig();
+          allow delete: if false;
+        }
+
+        match /examinations/{examId} {
+          allow get: if isValidId(examId) && (resource == null || resource.data.id == examId) && hasProjectConfig();
+          allow list: if resource.data.datasetId == datasetId;
+          allow create: if isValidId(examId) && isValidVersionedExamination(incoming()) && incoming().id == examId && incoming().datasetId == datasetId && incoming().versionId == versionId && hasProjectConfig();
+          allow update: if isValidId(examId) && isValidVersionedExamination(incoming()) && incoming().id == existing().id && incoming().datasetId == existing().datasetId && incoming().versionId == existing().versionId && hasProjectConfig();
+          allow delete: if false;
+        }
+      }
+    }
+
+    match /datasetImportJobs/{jobId} {
+      allow get: if isValidId(jobId) && (resource == null || resource.data.importJobId == jobId) && hasProjectConfig();
+      allow list: if resource.data.status in ['running', 'completed', 'already_imported', 'failed'];
+      allow create: if isValidId(jobId) && isValidDatasetImportJob(incoming()) && incoming().importJobId == jobId && hasProjectConfig();
+      allow update: if isValidId(jobId) && isValidDatasetImportJob(incoming()) && incoming().importJobId == existing().importJobId && incoming().datasetId == existing().datasetId && incoming().sourceChecksum == existing().sourceChecksum && hasProjectConfig();
+      allow delete: if false;
+    }
+
+    match /admins/{adminUid} {
+      allow get: if isSignedIn() && isValidId(adminUid) && (request.auth.uid == adminUid || isAdmin());
+      allow list: if false;
+      allow create: if isAdmin() && isValidId(adminUid) && isValidAdminPrivilege(incoming()) && incoming().uid == adminUid && incoming().grantedAt == request.time;
+      allow update: if isAdmin() && isValidId(adminUid) && isValidAdminPrivilege(incoming()) && incoming().uid == existing().uid && incoming().grantedAt == existing().grantedAt && incoming().diff(existing()).affectedKeys().hasOnly(['email']);
+      allow delete: if isAdmin() && isValidId(adminUid);
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (resource == null || resource.data.uid == userId) && hasProjectConfig();
+      allow list: if resource.data.accountStatus in ['active', 'suspended', 'disabled'];
+      allow create: if isValidId(userId) && isValidUser(incoming()) && incoming().uid == userId && hasProjectConfig();
+      allow update: if isValidId(userId) && isValidUser(incoming()) && incoming().uid == existing().uid && incoming().createdAt == existing().createdAt && incoming().authorizationVersion >= existing().authorizationVersion && hasProjectConfig();
+      allow delete: if false;
+    }
+
+    match /schedules/{scheduleId} {
+      allow get: if isValidId(scheduleId) && (resource == null || resource.data.scheduleId == scheduleId) && hasProjectConfig();
+      allow list: if resource.data.scheduleType in ['weekly', 'spectra', 'examination', 'repaired'] && hasProjectConfig();
+      allow create: if isValidId(scheduleId) && isValidSchedule(incoming()) && incoming().scheduleId == scheduleId && hasProjectConfig();
+      allow update: if isValidId(scheduleId) && isValidSchedule(incoming()) && incoming().scheduleId == existing().scheduleId && incoming().datasetId == existing().datasetId && hasProjectConfig();
+      allow delete: if false;
+
+      match /sessionAssignments/{sessionId} {
+        allow get: if isValidId(sessionId) && (resource == null || resource.data.sessionId == sessionId) && hasProjectConfig();
+        allow list: if resource.data.scheduleId == scheduleId && hasProjectConfig();
+        allow create: if isValidId(sessionId) && isValidSessionAssignment(incoming()) && incoming().sessionId == sessionId && incoming().scheduleId == scheduleId && hasProjectConfig();
+        allow update: if isValidId(sessionId) && isValidSessionAssignment(incoming()) && incoming().sessionId == existing().sessionId && incoming().scheduleId == existing().scheduleId && hasProjectConfig();
+        allow delete: if false;
+      }
+
+      match /validationReports/{reportId} {
+        allow get: if isValidId(reportId) && (resource == null || resource.data.reportId == reportId) && hasProjectConfig();
+        allow list: if resource.data.scheduleId == scheduleId && hasProjectConfig();
+        allow create: if isValidId(reportId) && isValidScheduleValidationReport(incoming()) && incoming().reportId == reportId && incoming().scheduleId == scheduleId && hasProjectConfig();
+        allow update: if isValidId(reportId) && isValidScheduleValidationReport(incoming()) && incoming().reportId == existing().reportId && incoming().scheduleId == existing().scheduleId && hasProjectConfig();
+        allow delete: if false;
+      }
+    }
+
+    match /examinationSchedules/{examScheduleId} {
+      allow get: if isValidId(examScheduleId) && (resource == null || resource.data.scheduleState in ['examination_candidate', 'validated', 'published', 'superseded']) && hasProjectConfig();
+      allow list: if hasProjectConfig();
+      allow create: if isValidId(examScheduleId) && isValidExaminationSchedule(incoming()) && incoming().examScheduleId == examScheduleId && hasProjectConfig();
+      allow update: if isValidId(examScheduleId) && isValidExaminationSchedule(incoming()) && incoming().examScheduleId == existing().examScheduleId && hasProjectConfig();
+      allow delete: if isValidId(examScheduleId) && hasProjectConfig();
+
+      match /examAllocations/{examId} {
+        allow get: if isValidId(examId) && (resource == null || resource.data.examId == examId) && hasProjectConfig();
+        allow list: if hasProjectConfig();
+        allow create: if isValidId(examId) && isValidExamAllocation(incoming()) && incoming().examId == examId && incoming().examScheduleId == examScheduleId && hasProjectConfig();
+        allow update: if isValidId(examId) && isValidExamAllocation(incoming()) && incoming().examId == existing().examId && incoming().examScheduleId == existing().examScheduleId && hasProjectConfig();
+        allow delete: if false;
+      }
+
+      match /validationReports/{reportId} {
+        allow get: if isValidId(reportId) && (resource == null || resource.data.reportId == reportId) && hasProjectConfig();
+        allow list: if hasProjectConfig();
+        allow create: if isValidId(reportId) && isValidExamValidationReport(incoming()) && incoming().reportId == reportId && incoming().examScheduleId == examScheduleId && hasProjectConfig();
+        allow update: if isValidId(reportId) && isValidExamValidationReport(incoming()) && incoming().reportId == existing().reportId && incoming().examScheduleId == existing().examScheduleId && hasProjectConfig();
+        allow delete: if false;
+      }
+    }
+
+    match /bookingRequests/{requestId} {
+      allow get: if isSignedIn() && isValidId(requestId) && (resource.data.requesterUserId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.requesterUserId == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser() && isValidId(requestId) && isValidBookingRequest(incoming()) && incoming().requestId == requestId && incoming().requesterUserId == request.auth.uid && incoming().status == 'pending' && incoming().createdAt == request.time;
+      allow update: if isVerifiedUser() && isValidId(requestId) && isValidBookingRequest(incoming()) && incoming().requestId == existing().requestId && incoming().requesterUserId == existing().requesterUserId && incoming().createdAt == existing().createdAt && (
+        isAdmin() ||
+        (existing().requesterUserId == request.auth.uid && existing().status == 'pending' && incoming().status == 'cancelled' && incoming().diff(existing()).affectedKeys().hasOnly(['status']))
+      );
+      allow delete: if false;
+    }
+
+    match /bookingDecisions/{decisionId} {
+      allow get: if isSignedIn() && isValidId(decisionId) && (
+        isAdmin() ||
+        (exists(/databases/$(database)/documents/bookingRequests/$(resource.data.requestId)) &&
+         get(/databases/$(database)/documents/bookingRequests/$(resource.data.requestId)).data.requesterUserId == request.auth.uid)
+      );
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isValidId(decisionId) && isValidBookingDecision(incoming()) && incoming().decisionId == decisionId && incoming().decidedAt == request.time && exists(/databases/$(database)/documents/bookingRequests/$(incoming().requestId));
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /bookingDecisionRuns/{runId} {
+      allow get: if isValidId(runId) && hasProjectConfig();
+      allow list: if hasProjectConfig();
+      allow create: if isValidId(runId) && hasProjectConfig();
+      allow update: if isValidId(runId) && hasProjectConfig();
+      allow delete: if isValidId(runId) && hasProjectConfig();
+
+      match /decisions/{requestId} {
+        allow get: if isValidId(requestId) && hasProjectConfig();
+        allow list: if hasProjectConfig();
+        allow create: if isValidId(requestId) && hasProjectConfig();
+        allow update: if isValidId(requestId) && hasProjectConfig();
+        allow delete: if false;
+      }
+    }
+
+    match /departmentEventBookings/{bookingId} {
+      allow get: if isSignedIn() && isValidId(bookingId) && (resource.data.coordinatorUid == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.coordinatorUid == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser() && isValidId(bookingId) && isValidDepartmentEventBooking(incoming()) && incoming().bookingId == bookingId && incoming().coordinatorUid == request.auth.uid && incoming().status == 'pending';
+      allow update: if isAdmin() && isValidId(bookingId) && isValidDepartmentEventBooking(incoming()) && incoming().bookingId == existing().bookingId && incoming().coordinatorUid == existing().coordinatorUid && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+      allow delete: if false;
+    }
+
+    match /unavailabilityRequests/{requestId} {
+      allow get: if isSignedIn() && isValidId(requestId) && (resource.data.facultyId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.facultyId == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser() && isValidId(requestId) && isValidUnavailabilityRequest(incoming()) && incoming().requestId == requestId && incoming().facultyId == request.auth.uid && incoming().status == 'pending';
+      allow update: if isAdmin() && isValidId(requestId) && isValidUnavailabilityRequest(incoming()) && incoming().requestId == existing().requestId && incoming().facultyId == existing().facultyId && existing().status == 'pending' && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+      allow delete: if false;
+    }
+
+    match /additionalSessionRequests/{requestId} {
+      allow get: if isSignedIn() && isValidId(requestId) && (resource.data.facultyId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.facultyId == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser() && isValidId(requestId) && isValidAdditionalSessionRequest(incoming()) && incoming().requestId == requestId && incoming().facultyId == request.auth.uid && incoming().status == 'pending';
+      allow update: if isAdmin() && isValidId(requestId) && isValidAdditionalSessionRequest(incoming()) && incoming().requestId == existing().requestId && incoming().facultyId == existing().facultyId && existing().status == 'pending' && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+      allow delete: if false;
+    }
+
+    match /sessionChangeRequests/{requestId} {
+      allow get: if isSignedIn() && isValidId(requestId) && (resource.data.facultyId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.facultyId == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser() && isValidId(requestId) && isValidSessionChangeRequest(incoming()) && incoming().requestId == requestId && incoming().facultyId == request.auth.uid && incoming().status == 'pending';
+      allow update: if isAdmin() && isValidId(requestId) && isValidSessionChangeRequest(incoming()) && incoming().requestId == existing().requestId && incoming().facultyId == existing().facultyId && existing().status in ['pending', 'endorsed'] && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+      allow delete: if false;
+    }
+
+    match /manualAllocations/{allocationId} {
+      allow get: if isAdmin() && isValidId(allocationId);
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isValidId(allocationId) && isValidManualAllocation(incoming()) && incoming().allocationId == allocationId && incoming().adminUserId == request.auth.uid && incoming().feasibilityVerified == true;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /approvalRecords/{approvalId} {
+      allow get: if isAdmin() && isValidId(approvalId);
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isValidId(approvalId) && isValidApprovalRecord(incoming()) && incoming().approvalId == approvalId && incoming().approverUserId == request.auth.uid;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /disruptionRecords/{disruptionId} {
+      allow get: if isAdmin() && isValidId(disruptionId);
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isValidId(disruptionId) && isValidDisruptionRecord(incoming()) && incoming().disruptionId == disruptionId && exists(/databases/$(database)/documents/datasets/$(incoming().datasetId));
+      allow update: if isAdmin() && isValidId(disruptionId) && isValidDisruptionRecord(incoming()) && incoming().disruptionId == existing().disruptionId && incoming().datasetId == existing().datasetId && existing().status != 'applied' && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+      allow delete: if false;
+    }
+
+    match /rescheduleProposals/{proposalId} {
+      allow get: if isAdmin() && isValidId(proposalId);
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isValidId(proposalId) && isValidRescheduleProposal(incoming()) && incoming().proposalId == proposalId && exists(/databases/$(database)/documents/disruptionRecords/$(incoming().disruptionId));
+      allow update: if isAdmin() && isValidId(proposalId) && isValidRescheduleProposal(incoming()) && incoming().proposalId == existing().proposalId && incoming().disruptionId == existing().disruptionId && existing().status == 'staged' && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+      allow delete: if false;
+    }
+
+    match /reschedulingProposals/{proposalId} {
+      allow get: if isValidId(proposalId) && hasProjectConfig();
+      allow list: if hasProjectConfig();
+      allow create: if isValidId(proposalId) && hasProjectConfig();
+      allow update: if isValidId(proposalId) && hasProjectConfig();
+      allow delete: if isValidId(proposalId) && hasProjectConfig();
+    }
+
+    match /repairResults/{repairId} {
+      allow get: if isAdmin() && isValidId(repairId);
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isValidId(repairId) && isValidRepairResult(incoming()) && incoming().repairId == repairId && exists(/databases/$(database)/documents/disruptionRecords/$(incoming().disruptionId));
+      allow update: if isAdmin() && isValidId(repairId) && isValidRepairResult(incoming()) && incoming().repairId == existing().repairId && incoming().disruptionId == existing().disruptionId && existing().approvalDecision == 'pending' && incoming().diff(existing()).affectedKeys().hasOnly(['approvalDecision']);
+      allow delete: if false;
+    }
+
+    match /appliedChanges/{changeId} {
+      allow get: if isAdmin() && isValidId(changeId);
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isValidId(changeId) && isValidAppliedChange(incoming()) && incoming().changeId == changeId && incoming().approvedByUid == request.auth.uid && incoming().appliedAt == request.time && exists(/databases/$(database)/documents/repairResults/$(incoming().repairId));
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /auditLogs/{auditId} {
+      allow get: if isValidId(auditId) && (resource == null || resource.data.auditId == auditId) && hasProjectConfig();
+      allow list: if resource.data.outcome in ['success', 'failure', 'denied'];
+      allow create: if isValidId(auditId) && isValidAuditLog(incoming()) && incoming().auditId == auditId && hasProjectConfig();
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /systemSettings/{settingKey} {
+      allow get: if isSignedIn() && isValidId(settingKey) && (resource.data.settingKey == settingKey || isAdmin());
+      allow list: if isSignedIn() && (resource.data.settingKey is string || isAdmin());
+      allow create: if isAdmin() && isValidId(settingKey) && isValidSystemSetting(incoming()) && incoming().settingKey == settingKey && incoming().updatedByUserId == request.auth.uid && incoming().updatedAt == request.time;
+      allow update: if isAdmin() && isValidId(settingKey) && isValidSystemSetting(incoming()) && incoming().settingKey == existing().settingKey && incoming().updatedByUserId == request.auth.uid && incoming().updatedAt == request.time && incoming().diff(existing()).affectedKeys().hasOnly(['updatedByUserId', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    match /exportRecords/{exportId} {
+      allow get: if isAdmin() && isValidId(exportId);
+      allow list: if isAdmin();
+      allow create: if isAdmin() && isValidId(exportId) && isValidExportRecord(incoming()) && incoming().exportId == exportId && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}

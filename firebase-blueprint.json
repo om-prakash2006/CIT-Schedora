@@ -1,0 +1,1451 @@
+{
+  "entities": {
+    "SystemMeta": {
+      "title": "SystemMeta",
+      "description": "Application infrastructure configuration, active dataset pointer, schema registry, and booking priority configuration.",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "databaseType": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "application": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "schemaVersion": {
+          "type": "integer"
+        },
+        "initialized": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["projectId"]
+    },
+    "AdminPrivilege": {
+      "title": "AdminPrivilege",
+      "description": "Trusted administrator directory record for rule-level RBAC verification.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 254
+        },
+        "grantedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "grantedAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Institutional user profile keyed by Firebase Authentication UID (no passwords stored in Firestore).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 254
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "department_coordinator", "faculty", "club"],
+          "maxLength": 64
+        },
+        "facultyId": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "departmentId": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "clubId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "accountStatus": {
+          "type": "string",
+          "enum": ["active", "suspended", "disabled"],
+          "maxLength": 32
+        },
+        "authorizationVersion": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "displayName", "role", "accountStatus", "authorizationVersion", "createdAt", "updatedAt"]
+    },
+    "Dataset": {
+      "title": "Dataset",
+      "description": "Root institutional dataset record (e.g., datasets/cit-public-v1).",
+      "type": "object",
+      "properties": {
+        "datasetId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "institute": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "activeVersionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "latestVersionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["datasetId", "institute", "activeVersionId", "latestVersionId", "createdAt", "updatedAt"]
+    },
+    "DatasetVersion": {
+      "title": "DatasetVersion",
+      "description": "Versioned institutional dataset snapshot under datasets/{datasetId}/versions/{versionId}.",
+      "type": "object",
+      "properties": {
+        "datasetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "versionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "institute": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "checksum": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "sourceFilename": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "status": {
+          "type": "string",
+          "enum": ["staged", "validated", "active", "archived"],
+          "maxLength": 32
+        },
+        "importedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "importedBy": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": ["datasetId", "versionId", "institute", "checksum", "sourceFilename", "status", "importedAt", "importedBy"]
+    },
+    "VersionedRoom": {
+      "title": "VersionedRoom",
+      "description": "Official room entity under datasets/{datasetId}/versions/{versionId}/rooms/{roomId}.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "datasetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "versionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "building": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "type": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "capacity": {
+          "type": "integer"
+        },
+        "accessible": {
+          "type": "boolean"
+        }
+      },
+      "required": ["id", "datasetId", "versionId", "name", "building", "type", "capacity", "accessible"]
+    },
+    "VersionedRoomUnavailability": {
+      "title": "VersionedRoomUnavailability",
+      "description": "Official room unavailability record under datasets/{datasetId}/versions/{versionId}/roomUnavailability/{unavailabilityId}.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "datasetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "versionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "room_id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "day": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 500
+        }
+      },
+      "required": ["id", "datasetId", "versionId", "room_id", "day", "reason"]
+    },
+    "VersionedFaculty": {
+      "title": "VersionedFaculty",
+      "description": "Official faculty record under datasets/{datasetId}/versions/{versionId}/faculty/{facultyId}.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "datasetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "versionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "department": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "max_hours_per_day": {
+          "type": "integer"
+        },
+        "needs_accessible": {
+          "type": "boolean"
+        }
+      },
+      "required": ["id", "datasetId", "versionId", "name", "department", "max_hours_per_day", "needs_accessible"]
+    },
+    "VersionedStudentGroup": {
+      "title": "VersionedStudentGroup",
+      "description": "Official student group record under datasets/{datasetId}/versions/{versionId}/studentGroups/{groupId}.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "datasetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "versionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "year": {
+          "type": "integer"
+        },
+        "department": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "size": {
+          "type": "integer"
+        },
+        "needs_accessible": {
+          "type": "boolean"
+        }
+      },
+      "required": ["id", "datasetId", "versionId", "name", "year", "department", "size", "needs_accessible"]
+    },
+    "VersionedCourse": {
+      "title": "VersionedCourse",
+      "description": "Official course record under datasets/{datasetId}/versions/{versionId}/courses/{courseId}.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "datasetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "versionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "department": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "year": {
+          "type": "integer"
+        }
+      },
+      "required": ["id", "datasetId", "versionId", "title", "department", "year"]
+    },
+    "VersionedSession": {
+      "title": "VersionedSession",
+      "description": "Official curricular session definition under datasets/{datasetId}/versions/{versionId}/sessions/{sessionId}.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "datasetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "versionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "course_id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "kind": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "faculty_id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "size": {
+          "type": "integer"
+        },
+        "duration": {
+          "type": "integer"
+        },
+        "needs_accessible": {
+          "type": "boolean"
+        }
+      },
+      "required": ["id", "datasetId", "versionId", "course_id", "kind", "faculty_id", "size", "duration", "needs_accessible"]
+    },
+    "VersionedBookingRequest": {
+      "title": "VersionedBookingRequest",
+      "description": "Official dataset booking request under datasets/{datasetId}/versions/{versionId}/bookingRequests/{requestId}.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "datasetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "versionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "requester": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "role": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "requested_category": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "effective_category": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "attendance": {
+          "type": "integer"
+        },
+        "duration_periods": {
+          "type": "integer"
+        },
+        "raw_text": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "is_cancelled": {
+          "type": "boolean"
+        }
+      },
+      "required": ["id", "datasetId", "versionId", "requester", "role", "requested_category", "effective_category", "title", "attendance", "duration_periods", "raw_text", "is_cancelled"]
+    },
+    "VersionedCancellation": {
+      "title": "VersionedCancellation",
+      "description": "Official dataset booking cancellation under datasets/{datasetId}/versions/{versionId}/cancellations/{requestId}.",
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "datasetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "versionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "cancelled_at": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "by": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 500
+        }
+      },
+      "required": ["request_id", "datasetId", "versionId", "cancelled_at", "by", "note"]
+    },
+    "VersionedExamination": {
+      "title": "VersionedExamination",
+      "description": "Official dataset examination definition under datasets/{datasetId}/versions/{versionId}/examinations/{examId}.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "datasetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "versionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "size": {
+          "type": "integer"
+        },
+        "duration_hours": {
+          "type": "integer"
+        }
+      },
+      "required": ["id", "datasetId", "versionId", "size", "duration_hours"]
+    },
+    "Schedule": {
+      "title": "Schedule",
+      "description": "Generated and validator-verified schedule record under schedules/{scheduleId}.",
+      "type": "object",
+      "properties": {
+        "scheduleId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "datasetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "datasetVersionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "sourceDatasetChecksum": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "scheduleType": {
+          "type": "string",
+          "enum": ["weekly", "spectra", "examination", "repaired"],
+          "maxLength": 32
+        },
+        "solverName": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "solverVersion": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "solverStatus": {
+          "type": "string",
+          "enum": ["OPTIMAL", "FEASIBLE", "INFEASIBLE", "UNKNOWN", "MODEL_INVALID"],
+          "maxLength": 32
+        },
+        "validationStatus": {
+          "type": "string",
+          "enum": ["valid", "invalid", "pending"],
+          "maxLength": 32
+        },
+        "validationScope": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "hardViolationCount": {
+          "type": "integer"
+        },
+        "softPenaltyTotal": {
+          "type": "integer"
+        },
+        "generatedAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "generatedBy": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "numberOfSessions": {
+          "type": "integer"
+        },
+        "scheduleState": {
+          "type": "string",
+          "enum": ["weekly_candidate", "validated", "published", "superseded"],
+          "maxLength": 32
+        },
+        "solveDurationMs": {
+          "type": "integer"
+        }
+      },
+      "required": ["scheduleId", "datasetId", "datasetVersionId", "sourceDatasetChecksum", "scheduleType", "solverName", "solverVersion", "solverStatus", "validationStatus", "validationScope", "hardViolationCount", "softPenaltyTotal", "generatedAt", "generatedBy", "numberOfSessions", "scheduleState", "solveDurationMs"]
+    },
+    "SessionAssignment": {
+      "title": "SessionAssignment",
+      "description": "Generated session slot assignment under schedules/{scheduleId}/sessionAssignments/{sessionId}.",
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "scheduleId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "day": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "startPeriod": {
+          "type": "integer"
+        },
+        "roomId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "duration": {
+          "type": "integer"
+        },
+        "courseId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["lecture", "tutorial", "lab"],
+          "maxLength": 32
+        },
+        "facultyId": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": ["sessionId", "scheduleId", "day", "startPeriod", "roomId", "duration", "courseId", "kind", "facultyId"]
+    },
+    "ScheduleValidationReport": {
+      "title": "ScheduleValidationReport",
+      "description": "Weekly timetable validator report under schedules/{scheduleId}/validationReports/{reportId}.",
+      "type": "object",
+      "properties": {
+        "reportId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "scheduleId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "datasetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "scheduleDatasetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "validationScope": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "isValid": {
+          "type": "boolean"
+        },
+        "hardViolationCount": {
+          "type": "integer"
+        },
+        "softTotal": {
+          "type": "integer"
+        },
+        "solverSoftTotal": {
+          "type": "integer"
+        },
+        "parityVerified": {
+          "type": "boolean"
+        },
+        "validatedAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "validatedBy": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": ["reportId", "scheduleId", "datasetId", "scheduleDatasetId", "validationScope", "isValid", "hardViolationCount", "softTotal", "solverSoftTotal", "parityVerified", "validatedAt", "validatedBy"]
+    },
+    "ExaminationSchedule": {
+      "title": "ExaminationSchedule",
+      "description": "Generated examination schedule metadata record under examinationSchedules/{examScheduleId}.",
+      "type": "object",
+      "properties": {
+        "examScheduleId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "datasetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "datasetVersionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "sourceDatasetChecksum": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "solverName": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "solverVersion": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "solverStatus": {
+          "type": "string",
+          "enum": ["OPTIMAL", "FEASIBLE", "INFEASIBLE", "UNKNOWN", "MODEL_INVALID"],
+          "maxLength": 32
+        },
+        "validationStatus": {
+          "type": "string",
+          "enum": ["valid", "invalid", "pending"],
+          "maxLength": 32
+        },
+        "validationScope": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "officialSoftPenalty": {
+          "type": "integer"
+        },
+        "generationTimestamp": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "generatedBy": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "totalExams": {
+          "type": "integer"
+        },
+        "scheduledExams": {
+          "type": "integer"
+        },
+        "roomsAllocated": {
+          "type": "integer"
+        },
+        "scheduleState": {
+          "type": "string",
+          "enum": ["examination_candidate", "validated", "published", "superseded"],
+          "maxLength": 32
+        },
+        "solveDurationMs": {
+          "type": "integer"
+        }
+      },
+      "required": ["examScheduleId", "datasetId", "datasetVersionId", "sourceDatasetChecksum", "solverName", "solverVersion", "solverStatus", "validationStatus", "validationScope", "officialSoftPenalty", "generationTimestamp", "generatedBy", "totalExams", "scheduledExams", "roomsAllocated", "scheduleState", "solveDurationMs"]
+    },
+    "ExamAllocation": {
+      "title": "ExamAllocation",
+      "description": "Generated exam room and slot allocation under examinationSchedules/{examScheduleId}/examAllocations/{examId}.",
+      "type": "object",
+      "properties": {
+        "examId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "examScheduleId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "day": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "session": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "effectiveCapacity": {
+          "type": "integer"
+        },
+        "candidateCount": {
+          "type": "integer"
+        }
+      },
+      "required": ["examId", "examScheduleId", "day", "session", "effectiveCapacity", "candidateCount"]
+    },
+    "ExamValidationReport": {
+      "title": "ExamValidationReport",
+      "description": "Examination timetable validator report under examinationSchedules/{examScheduleId}/validationReports/{reportId}.",
+      "type": "object",
+      "properties": {
+        "reportId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "examScheduleId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "datasetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "validationScope": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "isValid": {
+          "type": "boolean"
+        },
+        "hardViolationCount": {
+          "type": "integer"
+        },
+        "officialSoftPenalty": {
+          "type": "integer"
+        },
+        "solverSoftPenalty": {
+          "type": "integer"
+        },
+        "parityVerified": {
+          "type": "boolean"
+        },
+        "totalExams": {
+          "type": "integer"
+        },
+        "scheduledExams": {
+          "type": "integer"
+        },
+        "validatedAt": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "validatedBy": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": ["reportId", "examScheduleId", "datasetId", "validationScope", "isValid", "hardViolationCount", "officialSoftPenalty", "solverSoftPenalty", "parityVerified", "totalExams", "scheduledExams", "validatedAt", "validatedBy"]
+    },
+    "BookingRequest": {
+      "title": "BookingRequest",
+      "description": "Operational venue booking request.",
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "requesterUserId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected", "alternative_offered", "cancelled"],
+          "maxLength": 32
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["requestId", "requesterUserId", "category", "title", "status", "createdAt"]
+    },
+    "BookingDecision": {
+      "title": "BookingDecision",
+      "description": "Deterministic venue booking decision.",
+      "type": "object",
+      "properties": {
+        "decisionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "requestId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "outcome": {
+          "type": "string",
+          "enum": ["approved", "rejected", "alternative_offered", "cancelled"],
+          "maxLength": 32
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "decidedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["decisionId", "requestId", "outcome", "reason", "decidedAt"]
+    },
+    "DepartmentEventBooking": {
+      "title": "DepartmentEventBooking",
+      "description": "Department Coordinator event booking record.",
+      "type": "object",
+      "properties": {
+        "bookingId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "requestId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "departmentId": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "coordinatorUid": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected", "escalated"],
+          "maxLength": 32
+        }
+      },
+      "required": ["bookingId", "requestId", "departmentId", "coordinatorUid", "status"]
+    },
+    "UnavailabilityRequest": {
+      "title": "UnavailabilityRequest",
+      "description": "Faculty unavailability request.",
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "facultyId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "day": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "period": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "maxLength": 32
+        }
+      },
+      "required": ["requestId", "facultyId", "day", "period", "status"]
+    },
+    "AdditionalSessionRequest": {
+      "title": "AdditionalSessionRequest",
+      "description": "Faculty request for an additional session.",
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "facultyId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "courseId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "maxLength": 32
+        }
+      },
+      "required": ["requestId", "facultyId", "courseId", "status"]
+    },
+    "SessionChangeRequest": {
+      "title": "SessionChangeRequest",
+      "description": "Faculty or coordinator session relocation request.",
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "sessionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "facultyId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "endorsed", "approved", "rejected"],
+          "maxLength": 32
+        }
+      },
+      "required": ["requestId", "sessionId", "facultyId", "status"]
+    },
+    "ManualAllocation": {
+      "title": "ManualAllocation",
+      "description": "Audited manual slot allocation.",
+      "type": "object",
+      "properties": {
+        "allocationId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "adminUserId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "targetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "roomId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "feasibilityVerified": {
+          "type": "boolean"
+        }
+      },
+      "required": ["allocationId", "adminUserId", "targetId", "roomId", "feasibilityVerified"]
+    },
+    "ApprovalRecord": {
+      "title": "ApprovalRecord",
+      "description": "Separation-of-Duties verified approval record.",
+      "type": "object",
+      "properties": {
+        "approvalId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "entityType": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "entityId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "approverUserId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "decision": {
+          "type": "string",
+          "enum": ["approved", "rejected"],
+          "maxLength": 32
+        }
+      },
+      "required": ["approvalId", "entityType", "entityId", "approverUserId", "decision"]
+    },
+    "DisruptionRecord": {
+      "title": "DisruptionRecord",
+      "description": "Operational disruption descriptor.",
+      "type": "object",
+      "properties": {
+        "disruptionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "datasetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "storageObjectPath": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "status": {
+          "type": "string",
+          "enum": ["staged", "processed", "applied"],
+          "maxLength": 32
+        }
+      },
+      "required": ["disruptionId", "datasetId", "storageObjectPath", "status"]
+    },
+    "RescheduleProposal": {
+      "title": "RescheduleProposal",
+      "description": "Minimum-movement dynamic rescheduling proposal.",
+      "type": "object",
+      "properties": {
+        "proposalId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "disruptionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "validatorPassed": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["staged", "approved", "rejected"],
+          "maxLength": 32
+        }
+      },
+      "required": ["proposalId", "disruptionId", "validatorPassed", "status"]
+    },
+    "RepairResult": {
+      "title": "RepairResult",
+      "description": "Computed repair result preserving baseline schedule ID and validator report.",
+      "type": "object",
+      "properties": {
+        "repairId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "baselineScheduleId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "disruptionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "sessionsMovedCount": {
+          "type": "integer"
+        },
+        "validatorPassed": {
+          "type": "boolean"
+        },
+        "approvalDecision": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "maxLength": 32
+        }
+      },
+      "required": ["repairId", "baselineScheduleId", "disruptionId", "sessionsMovedCount", "validatorPassed", "approvalDecision"]
+    },
+    "AppliedChange": {
+      "title": "AppliedChange",
+      "description": "Approved disruption repair application record.",
+      "type": "object",
+      "properties": {
+        "changeId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "repairId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "baselineScheduleId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "disruptionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "approvedByUid": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "appliedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["changeId", "repairId", "baselineScheduleId", "disruptionId", "approvedByUid", "appliedAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Append-only institutional audit log entry.",
+      "type": "object",
+      "properties": {
+        "auditId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "actorUid": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "actorEmail": {
+          "type": "string",
+          "maxLength": 254
+        },
+        "actorRole": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "targetUid": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "module": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "action": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "outcome": {
+          "type": "string",
+          "enum": ["success", "failure", "denied"],
+          "maxLength": 32
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["auditId", "actorUid", "module", "action", "outcome", "createdAt"]
+    },
+    "SystemSetting": {
+      "title": "SystemSetting",
+      "description": "Institutional governance and priority configuration setting.",
+      "type": "object",
+      "properties": {
+        "settingKey": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "updatedByUserId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["settingKey", "updatedByUserId", "updatedAt"]
+    },
+    "DatasetImportJob": {
+      "title": "DatasetImportJob",
+      "description": "Versioned dataset import job manifest.",
+      "type": "object",
+      "properties": {
+        "importJobId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "datasetId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "versionId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "sourceFilename": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "sourceChecksum": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "validationPassed": {
+          "type": "boolean"
+        },
+        "referentialIntegrityPassed": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["running", "completed", "already_imported", "failed"],
+          "maxLength": 32
+        },
+        "importedBy": {
+          "type": "string",
+          "maxLength": 128
+        }
+      },
+      "required": ["importJobId", "datasetId", "versionId", "sourceFilename", "sourceChecksum", "validationPassed", "referentialIntegrityPassed", "status", "importedBy"]
+    },
+    "ExportRecord": {
+      "title": "ExportRecord",
+      "description": "Export artifact metadata and Cloud Storage reference.",
+      "type": "object",
+      "properties": {
+        "exportId": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "artifactType": {
+          "type": "string",
+          "enum": ["schedule.json", "schedule_after.json", "report"],
+          "maxLength": 64
+        },
+        "storageObjectPath": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["exportId", "artifactType", "storageObjectPath", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/systemMeta/{metaId}": {
+      "schema": "SystemMeta",
+      "description": "System metadata documents: projectConfig, activeDataset, databaseSchema, bookingPriority."
+    },
+    "/admins/{adminUid}": {
+      "schema": "AdminPrivilege",
+      "description": "Trusted administrator UIDs."
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles keyed by Firebase Authentication UID."
+    },
+    "/datasets/{datasetId}": {
+      "schema": "Dataset",
+      "description": "Institutional dataset metadata (e.g., datasets/cit-public-v1)."
+    },
+    "/datasets/{datasetId}/versions/{versionId}": {
+      "schema": "DatasetVersion",
+      "description": "Versioned dataset snapshot metadata."
+    },
+    "/datasets/{datasetId}/versions/{versionId}/rooms/{roomId}": {
+      "schema": "VersionedRoom",
+      "description": "Versioned official room inventory."
+    },
+    "/datasets/{datasetId}/versions/{versionId}/roomUnavailability/{unavailabilityId}": {
+      "schema": "VersionedRoomUnavailability",
+      "description": "Versioned official room unavailability windows."
+    },
+    "/datasets/{datasetId}/versions/{versionId}/faculty/{facultyId}": {
+      "schema": "VersionedFaculty",
+      "description": "Versioned official faculty directory."
+    },
+    "/datasets/{datasetId}/versions/{versionId}/studentGroups/{groupId}": {
+      "schema": "VersionedStudentGroup",
+      "description": "Versioned official student cohorts."
+    },
+    "/datasets/{datasetId}/versions/{versionId}/courses/{courseId}": {
+      "schema": "VersionedCourse",
+      "description": "Versioned official courses."
+    },
+    "/datasets/{datasetId}/versions/{versionId}/sessions/{sessionId}": {
+      "schema": "VersionedSession",
+      "description": "Versioned official curricular session definitions."
+    },
+    "/datasets/{datasetId}/versions/{versionId}/bookingRequests/{requestId}": {
+      "schema": "VersionedBookingRequest",
+      "description": "Versioned official dataset booking requests."
+    },
+    "/datasets/{datasetId}/versions/{versionId}/cancellations/{requestId}": {
+      "schema": "VersionedCancellation",
+      "description": "Versioned official dataset booking cancellations."
+    },
+    "/datasets/{datasetId}/versions/{versionId}/examinations/{examId}": {
+      "schema": "VersionedExamination",
+      "description": "Versioned official examination definitions."
+    },
+    "/schedules/{scheduleId}": {
+      "schema": "Schedule",
+      "description": "Generated and validator-verified schedules."
+    },
+    "/schedules/{scheduleId}/sessionAssignments/{sessionId}": {
+      "schema": "SessionAssignment",
+      "description": "Generated session slot and room assignments."
+    },
+    "/schedules/{scheduleId}/validationReports/{reportId}": {
+      "schema": "ScheduleValidationReport",
+      "description": "Validator execution reports for weekly candidate schedules."
+    },
+    "/examinationSchedules/{examScheduleId}": {
+      "schema": "ExaminationSchedule",
+      "description": "Generated examination schedule metadata records."
+    },
+    "/examinationSchedules/{examScheduleId}/examAllocations/{examId}": {
+      "schema": "ExamAllocation",
+      "description": "Generated examination room and slot allocations."
+    },
+    "/examinationSchedules/{examScheduleId}/validationReports/{reportId}": {
+      "schema": "ExamValidationReport",
+      "description": "Validator execution reports for examination candidate schedules."
+    },
+    "/bookingRequests/{requestId}": {
+      "schema": "BookingRequest",
+      "description": "Operational venue booking requests."
+    },
+    "/bookingDecisions/{decisionId}": {
+      "schema": "BookingDecision",
+      "description": "Deterministic venue booking decisions."
+    },
+    "/departmentEventBookings/{bookingId}": {
+      "schema": "DepartmentEventBooking",
+      "description": "Department Coordinator event booking records."
+    },
+    "/unavailabilityRequests/{requestId}": {
+      "schema": "UnavailabilityRequest",
+      "description": "Faculty unavailability requests."
+    },
+    "/additionalSessionRequests/{requestId}": {
+      "schema": "AdditionalSessionRequest",
+      "description": "Faculty additional session requests."
+    },
+    "/sessionChangeRequests/{requestId}": {
+      "schema": "SessionChangeRequest",
+      "description": "Faculty and coordinator session change requests."
+    },
+    "/manualAllocations/{allocationId}": {
+      "schema": "ManualAllocation",
+      "description": "Audited manual slot allocations."
+    },
+    "/approvalRecords/{approvalId}": {
+      "schema": "ApprovalRecord",
+      "description": "Separation-of-Duties approval records."
+    },
+    "/disruptionRecords/{disruptionId}": {
+      "schema": "DisruptionRecord",
+      "description": "Uploaded disruption descriptors."
+    },
+    "/rescheduleProposals/{proposalId}": {
+      "schema": "RescheduleProposal",
+      "description": "Minimum-movement dynamic rescheduling proposals."
+    },
+    "/repairResults/{repairId}": {
+      "schema": "RepairResult",
+      "description": "Computed disruption repair results."
+    },
+    "/appliedChanges/{changeId}": {
+      "schema": "AppliedChange",
+      "description": "Approved disruption repair applications."
+    },
+    "/auditLogs/{auditId}": {
+      "schema": "AuditLog",
+      "description": "Append-only institutional audit trail."
+    },
+    "/systemSettings/{settingKey}": {
+      "schema": "SystemSetting",
+      "description": "Institutional settings and priority hierarchy."
+    },
+    "/datasetImportJobs/{jobId}": {
+      "schema": "DatasetImportJob",
+      "description": "Versioned dataset import manifests."
+    },
+    "/exportRecords/{exportId}": {
+      "schema": "ExportRecord",
+      "description": "Export artifact metadata."
+    }
+  }
+}

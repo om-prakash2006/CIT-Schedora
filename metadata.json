@@ -1,0 +1,8 @@
+{
+  "name": "Remix CIT Schedora",
+  "description": "Institutional campus scheduling, examination allocation, dynamic rescheduling, and venue management platform for Chilika Institute of Technology.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
